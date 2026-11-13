@@ -50,7 +50,7 @@ class SpeakerProfile(TimeStampedModel):
     PRIVATE_FIELDS = ("email", "phone", "city", "region", "country")
 
     public_id = models.CharField(
-        max_length=16, unique=True, default=_new_public_id, editable=False, help_text="Stable public ID."
+        max_length=64, unique=True, default=_new_public_id, editable=False, help_text="Stable public ID."
     )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

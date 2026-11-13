@@ -225,6 +225,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_GENERATE_CHOICE_DESCRIPTION": False,
 }
 
 # --- Secrets at rest ------------------------------------------------------
@@ -237,6 +238,13 @@ FIELD_ENCRYPTION_KEYS = env.list("FIELD_ENCRYPTION_KEYS", default=[])
 EVENT_PLANNER = {
     # Base URL that locally published files are served from (dev only).
     "LOCAL_PUBLISH_BASE_URL": env("LOCAL_PUBLISH_BASE_URL", default="http://localhost:8000/published/"),
+    # Optional: path to a built conference-schedule-ui dist/ to publish as the
+    # interactive HTML/JS schedule (publishing.exporters.ui_bundle).
+    "SCHEDULE_UI_DIST_DIR": env("SCHEDULE_UI_DIST_DIR", default=""),
+    # Domain used in ICS UIDs (keep stable once feeds are public).
+    "CALENDAR_HOST": env("CALENDAR_HOST", default="event-planner.local"),
+    # AI query assistant provider: "" (off) or "anthropic" (needs the `ai` extra + ANTHROPIC_API_KEY).
+    "LLM_PROVIDER": env("LLM_PROVIDER", default=""),
     # Contact identifier sent to third-party APIs that ask for one (geocoders).
     "HTTP_USER_AGENT": env("HTTP_USER_AGENT", default="event-planner (open-source; +https://github.com)"),
 }
@@ -246,4 +254,9 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
+    "loggers": {
+        # PDF rendering is chatty at INFO.
+        "weasyprint": {"level": "WARNING"},
+        "fontTools": {"level": "WARNING"},
+    },
 }

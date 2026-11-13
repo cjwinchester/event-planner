@@ -20,6 +20,7 @@ class PublishRun(models.Model):
         QUEUED = "queued", "Queued"
         RUNNING = "running", "Running"
         SUCCEEDED = "succeeded", "Succeeded"
+        PARTIAL = "partial", "Partly succeeded (some formats failed)"
         FAILED = "failed", "Failed"
 
     event = models.ForeignKey("events.Event", on_delete=models.CASCADE, related_name="publish_runs")

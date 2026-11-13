@@ -30,3 +30,5 @@ STORAGES = {
     },
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+EVENT_PLANNER = {**EVENT_PLANNER, "LOCAL_PUBLISH_BASE_URL": "http://testserver/published/"}  # noqa: F405

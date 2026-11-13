@@ -73,7 +73,7 @@ class EventAdmin(EventTimezoneMixin, OrgScopedAdmin):
     date_hierarchy = "start_date"
     inlines = [EventVenueInline, EventRoomInline, TrackInline, TimeSlotInline, StaffInline]
     readonly_fields = ["schedule_summary"]
-    actions = ["report_conflicts", "copy_stock_from_previous"]
+    actions = ["report_conflicts", "copy_stock_from_previous", "publish_selected", "sync_registrations"]
     fieldsets = (
         (None, {"fields": ("organization", "series", "name", "slug", "short_name", "kind", "format", "status")}),
         ("When", {"fields": ("start_date", "end_date", "timezone")}),
@@ -206,3 +206,22 @@ class RegistrationAdmin(OrgScopedAdmin):
 class RegistrationSnapshotAdmin(OrgScopedAdmin):
     list_display = ["event", "recorded_on", "total_registrations", "source"]
     list_filter = ["event__organization", "event"]
+
+    @admin.action(description="Publish schedule feeds (JSON, CSV, TXT, ICS, PDF, schedule UI)")
+    def publish_selected(self, request, queryset):
+        from apps.publishing.tasks import publish_event_task
+
+        for event in queryset:
+            if not event.publish_schedule:
+                self.message_user(request, f"{event}: turn on 'publish schedule' first.", messages.WARNING)
+                continue
+            publish_event_task.enqueue(event.pk, None, request.user.pk)
+            self.message_user(request, f"{event}: publish queued — see Publish runs.", messages.SUCCESS)
+
+    @admin.action(description="Sync registrations from the registration connector")
+    def sync_registrations(self, request, queryset):
+        from apps.integrations.tasks import sync_event_registrations
+
+        for event in queryset:
+            sync_event_registrations.enqueue(event.pk, request.user.pk)
+            self.message_user(request, f"{event}: registration sync queued — see Sync runs.", messages.SUCCESS)

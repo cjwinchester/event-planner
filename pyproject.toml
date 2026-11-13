@@ -20,12 +20,17 @@ dependencies = [
     "gunicorn>=27.0.1",
     "icalendar>=7.3.0",
     "jsonschema>=4.26.0",
+    "nh3>=0.3.7",
     "pillow>=13.0.0",
     "psycopg[binary]>=3.3.9",
     "requests>=2.34.2",
     "weasyprint>=70.0",
     "whitenoise>=6.12.0",
 ]
+
+[project.optional-dependencies]
+# AI query assistant (apps/assistant/providers/anthropic_provider.py)
+ai = ["anthropic"]
 
 [tool.uv]
 package = false
