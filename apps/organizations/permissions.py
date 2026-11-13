@@ -49,8 +49,7 @@ def organization_ids_for(user, minimum: str = Role.VIEWER) -> list[int]:
     if user.is_superuser:
         return list(Organization.objects.values_list("pk", flat=True))
     return list(
-        Membership.objects.filter(
-            user=user, is_active=True, role__in=Membership.roles_at_least(minimum)
-        ).values_list("organization_id", flat=True)
+        Membership.objects.filter(user=user, is_active=True, role__in=Membership.roles_at_least(minimum)).values_list(
+            "organization_id", flat=True
+        )
     )
-

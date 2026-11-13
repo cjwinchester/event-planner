@@ -8,7 +8,7 @@ DEBUG = False
 SECRET_KEY = "test-secret-key"
 ALLOWED_HOSTS = ["testserver", "localhost"]
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
-EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
 ACCOUNT_EMAIL_VERIFICATION = "none"
 FIELD_ENCRYPTION_KEYS = ["dGVzdC1vbmx5LWZpZWxkLWVuY3J5cHQta2V5LTAwMDA="]
 

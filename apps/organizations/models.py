@@ -29,9 +29,7 @@ class Organization(TimeStampedModel):
     website = models.URLField(blank=True)
     description = models.TextField(blank=True)
     logo = models.ImageField(upload_to="organizations/logos/", blank=True)
-    default_timezone = models.CharField(
-        max_length=64, default="America/Chicago", validators=[validate_timezone]
-    )
+    default_timezone = models.CharField(max_length=64, default="America/Chicago", validators=[validate_timezone])
     is_active = models.BooleanField(default=True)
 
     # --- Sharing defaults (Org Admin controls what is shared) -------------

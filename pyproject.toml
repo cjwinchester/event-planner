@@ -45,11 +45,12 @@ testpaths = ["apps"]
 addopts = "--reuse-db -q"
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 extend-exclude = ["apps/*/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "RUF"]
-# RUF012: Django's ModelAdmin/Meta use plain mutable class attributes by design.
-ignore = ["RUF012"]
+# RUF012: Django ModelAdmin/Meta use plain mutable class attributes by design.
+# RUF001-003: en dashes in human-facing text (time ranges) are intentional.
+ignore = ["RUF012", "RUF001", "RUF002", "RUF003"]
