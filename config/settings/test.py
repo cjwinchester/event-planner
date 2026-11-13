@@ -1,5 +1,6 @@
 """Test settings (pytest uses these — see pyproject.toml)."""
 
+import os
 import tempfile
 
 from .base import *  # noqa: F403
@@ -18,6 +19,8 @@ TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBacken
 _FS = "django.core.files.storage.FileSystemStorage"
 _tmp = tempfile.mkdtemp(prefix="event-planner-tests-")
 MEDIA_ROOT = _tmp + "/media"
+STATIC_ROOT = _tmp + "/static"
+os.makedirs(STATIC_ROOT, exist_ok=True)
 STORAGES = {
     "default": {"BACKEND": _FS, "OPTIONS": {"location": MEDIA_ROOT}},
     "private": {"BACKEND": _FS, "OPTIONS": {"location": _tmp + "/private"}},

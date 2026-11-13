@@ -268,7 +268,8 @@ class EventRoom(models.Model):
         constraints = [models.UniqueConstraint(fields=["event", "room"], name="unique_event_room")]
 
     def __str__(self) -> str:
-        return self.name
+        # Dropdowns list rooms from several events; say which one.
+        return f"{self.name} — {self.event.short_name or self.event.name}"
 
     @property
     def name(self) -> str:
