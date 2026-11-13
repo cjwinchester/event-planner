@@ -16,13 +16,14 @@ from rest_framework.response import Response
 from apps.assistant.llm import LLMNotConfigured, QueryService
 from apps.commerce.models import Company, ExhibitorBooking, Sponsorship
 from apps.core.models import SHARED_VISIBILITIES
-from apps.events.models import Event, EventRoom, EventSeries
+from apps.events.models import Concession, Event, EventRoom, EventSeries, VenueRFP
 from apps.organizations.models import Organization
 from apps.organizations.permissions import has_role, organization_ids_for
 from apps.pitches import services as pitch_services
 from apps.pitches.models import Pitch, PitchTarget, PitchVote
 from apps.program.conflicts import event_conflicts
 from apps.program.copying import copy_sessions
+from apps.program.grid import grid_payload, grid_version
 from apps.program.models import LogisticsItem, Session, SessionSpeaker, TimeSlot, Track
 from apps.program.scheduling import PlacementError, place_logistics_item, place_session
 from apps.publishing.bundle import Audience, build_event_bundle
@@ -114,64 +115,13 @@ class EventViewSet(OrgScopedViewSet):
 
     @action(detail=True)
     def grid(self, request, pk=None):
-        """Everything the drag-and-drop planner needs in one call."""
-        event = self.get_object()
-        rooms = event.event_rooms.filter(is_schedulable=True).select_related("room")
-        sessions = (
-            Session.objects.active()
-            .filter(event=event)
-            .select_related("session_type")
-            .prefetch_related("tracks", "session_speakers__speaker")
-        )
-        logistics = LogisticsItem.objects.filter(event=event).select_related("category")
+        """Everything the drag-and-drop planner needs in one call (program.grid)."""
+        return Response(grid_payload(self.get_object()))
 
-        def session_item(x):
-            return {
-                "type": "session",
-                "id": x.pk,
-                "public_id": x.public_id,
-                "title": x.title,
-                "room": x.room_id,
-                "starts_at": x.starts_at,
-                "ends_at": x.ends_at,
-                "status": x.status,
-                "is_ready": x.is_ready,
-                "is_plenary": x.is_plenary,
-                "session_type": x.session_type.name if x.session_type else "",
-                "tracks": [t.slug for t in x.tracks.all()],
-                "speakers": [ss.speaker.full_name for ss in x.session_speakers.all()],
-            }
-
-        def logistics_item(x):
-            return {
-                "type": "logistics",
-                "id": x.pk,
-                "title": x.title,
-                "category": x.category.name,
-                "room": x.room_id,
-                "location_note": x.location_note,
-                "starts_at": x.starts_at,
-                "ends_at": x.ends_at,
-                "blocks_room": x.effective_blocks_room,
-            }
-
-        placed = [session_item(x) for x in sessions if x.is_placed] + [
-            logistics_item(x) for x in logistics if x.starts_at
-        ]
-        return Response(
-            {
-                "event": {"id": event.pk, "name": event.name, "timezone": event.timezone, "days": event.days},
-                "rooms": [
-                    {"id": r.pk, "name": r.name, "capacity": r.effective_capacity, "sort_order": r.sort_order}
-                    for r in rooms
-                ],
-                "time_slots": s.TimeSlotSerializer(event.time_slots.all(), many=True).data,
-                "items": placed,
-                "unscheduled": [session_item(x) for x in sessions if not x.is_placed]
-                + [logistics_item(x) for x in logistics if not x.starts_at],
-                "conflicts": [c.to_dict() for c in event_conflicts(event)],
-            }
-        )
+    @action(detail=True, url_path="grid-version")
+    def grid_version(self, request, pk=None):
+        """Cheap change check: the planner polls this to spot edits by others."""
+        return Response({"version": grid_version(self.get_object())})
 
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
@@ -216,6 +166,22 @@ class EventViewSet(OrgScopedViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class VenueRFPViewSet(OrgScopedViewSet):
+    """RFPs sent to venues (org-private)."""
+
+    queryset = VenueRFP.objects.select_related("event", "venue")
+    serializer_class = s.VenueRFPSerializer
+    filterset_fields = ["event", "venue", "status"]
+
+
+class ConcessionViewSet(OrgScopedViewSet):
+    """Concessions requested from venues and their outcomes (org-private)."""
+
+    queryset = Concession.objects.select_related("event", "rfp")
+    serializer_class = s.ConcessionSerializer
+    filterset_fields = ["event", "rfp", "outcome", "category"]
 
 
 class EventRoomViewSet(OrgScopedViewSet):

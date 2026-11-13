@@ -11,11 +11,12 @@ The goal is to replace spreadsheet + Apps Script workflows (the "SuperGrid")
 and the paid vendors nonprofits rent every year (Sessionize, Sched,
 Guidebook...).
 
-> **Status: phase 1 (backend).** Data model, org-scoped Django admin (the staff
-> UI for now), REST API, publishing/import pipeline, connector framework,
-> reports. The drag-and-drop grid, pitch dashboard, self-service portals and
-> maps are phase 2 and build on the API that already exists. See
-> [docs/continuing.md](docs/continuing.md).
+> **Status: phase 2 in progress.** Phase 1 delivered the data model, org-scoped
+> Django admin, REST API, publishing/import pipeline, connector framework and
+> reports. Phase 2 has started with the staff planner at `/plan/`: a
+> drag-and-drop schedule grid with an unscheduled pool, conflict previews,
+> undo, quick-edit and time-slot panels. Pitch dashboard, portals and maps are
+> next. See [docs/continuing.md](docs/continuing.md).
 
 ## Quick start
 
@@ -28,12 +29,14 @@ cp .env.example .env            # set DATABASE_URL, FIELD_ENCRYPTION_KEYS
 docker compose up -d db         # or use your own PostGIS
 uv run python manage.py migrate
 uv run python manage.py createsuperuser
+bash bin/tailwindcss-build.sh   # builds static/css/app.css (standalone CLI, no Node)
 uv run python manage.py runserver
 ```
 
-- Admin: <http://localhost:8000/admin/>, API docs: <http://localhost:8000/api/docs/>
+- Planner: <http://localhost:8000/plan/>, Admin: <http://localhost:8000/admin/>, API docs: <http://localhost:8000/api/docs/>
 - Background worker (publishing, syncs): `uv run python manage.py db_worker`
-- Tests: `uv run pytest` · Lint: `uv run ruff check . && uv run ruff format --check .`
+- Tests: `uv run pytest` (browser tests need `uv run playwright install chromium` once;
+  skip them with `-m "not browser"`) · Lint: `uv run ruff check . && uv run ruff format --check .`
 
 Try it with the sample data:
 
@@ -61,7 +64,7 @@ apps/
   accounts/        email-login User; Google Workspace SSO adapter
   organizations/   Organization (tenant) + Membership roles (admin/staff/viewer)
   venues/          shared venue directory: Venue (PostGIS), Floorplan, Room (combinable), capacities
-  events/          EventSeries, Event, EventVenue, EventRoom, private EventContract + pickup, Registrations
+  events/          EventSeries, Event, EventVenue, EventRoom; private EventContract + pickup, VenueRFP + Concessions; Registrations
   program/         Track, SessionType, SkillLevel, TimeSlot, Session, LogisticsItem; conflicts, scheduling, copying
   speakers/        global SpeakerProfile + links, speaker-controlled share grants, per-event EventSpeaker
   pitches/         Pitch → PitchTarget (per event), votes, custom questions; review workflow services
@@ -71,6 +74,7 @@ apps/
   reporting/       plug-in reports: registration pace, attendee dispersion, event locations
   assistant/       LLM query service (provider-agnostic) + read-only, privacy-scoped tools
   api/             DRF v1: viewsets, serializers, tenancy-safe base classes
+  planner/         staff UI: schedule grid page (static/js/grid.js) + HTMX side panels
 schemas/event-bundle/v1.json   the one interchange format
 ```
 

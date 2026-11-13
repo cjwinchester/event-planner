@@ -1,0 +1,29 @@
+{% load static %}<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Event Planner{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {# Swap 4xx bodies too: panels return 422/409 with the form and its errors. #}
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"4..","swap":true,"error":false},{"code":"5..","swap":false,"error":true}]}'>
+  {% block head %}{% endblock %}
+  <script src="{% static 'vendor/htmx-2.0.4.min.js' %}" defer></script>
+  <script src="{% static 'vendor/alpinejs-3.14.8.min.js' %}" defer></script>
+</head>
+<body class="h-full bg-gray-50 text-gray-900" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <header class="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-2">
+    <a href="{% url 'planner:event-list' %}" class="font-semibold text-blue-700">Event Planner</a>
+    {% block breadcrumbs %}{% endblock %}
+    <nav class="ml-auto flex items-center gap-3 text-sm text-gray-600">
+      <a href="/admin/" class="hover:text-blue-700">Admin</a>
+      <a href="/api/docs/" class="hover:text-blue-700">API</a>
+      {% if user.is_authenticated %}
+        <span>{{ user.email }}</span>
+        <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button class="hover:text-blue-700">Log out</button></form>
+      {% endif %}
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>

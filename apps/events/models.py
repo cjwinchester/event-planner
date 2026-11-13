@@ -9,7 +9,9 @@
   order, setup style, capacity, lab OS, recording — the per-room header
   row of the old SuperGrid.
 - `EventContract` + `RoomPickupSnapshot` hold hotel contract terms and
-  room-block pickup over time. ALWAYS private to the owning org: no
+  room-block pickup over time; `VenueRFP` + `Concession` hold the RFPs
+  sent to venues and the concessions requested (granted / partial /
+  denied, with notes). ALL ALWAYS private to the owning org: no
   visibility field, never exported, never shared.
 - `Registration` / `RegistrationSnapshot` feed pace reporting and attendee
   geography. Registration rows contain personal data and are org-private.
@@ -365,6 +367,106 @@ class RoomPickupSnapshot(models.Model):
 
     def __str__(self) -> str:
         return f"{self.recorded_on}: {self.rooms_picked_up}"
+
+
+class VenueRFP(TimeStampedModel):
+    """A request for proposal sent to a venue for an event. ALWAYS org-private.
+
+    An event may send RFPs to several hotels before signing one contract; the
+    concessions asked for in each are `Concession` rows linked here.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENT = "sent", "Sent"
+        RESPONDED = "responded", "Venue responded"
+        ACCEPTED = "accepted", "Accepted (contracting)"
+        DECLINED = "declined", "Declined / not pursued"
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="rfps")
+    venue = models.ForeignKey("venues.Venue", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    title = models.CharField(max_length=255, blank=True, help_text='e.g. "RFP — JW Marriott, NICAR 2028".')
+    rfp_file = models.FileField("RFP document", upload_to="rfps/", storage=private_storage, blank=True)
+    response_file = models.FileField(
+        "venue's proposal", upload_to="rfps/responses/", storage=private_storage, blank=True
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    sent_on = models.DateField(null=True, blank=True)
+    response_due = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    ORG_PATH = "event__organization"
+    objects = OrgScopedManager()
+
+    class Meta:
+        ordering = ["event", "-sent_on", "pk"]
+        verbose_name = "venue RFP"
+        verbose_name_plural = "venue RFPs"
+
+    def __str__(self) -> str:
+        return self.title or f"RFP — {self.venue or 'venue TBD'} ({self.event})"
+
+
+class Concession(TimeStampedModel):
+    """Something the organization asked a venue to concede (comp rooms, F&B
+    discount, free Wi-Fi, waived attrition...) and how it ended up.
+    ALWAYS org-private; never exported or shared."""
+
+    class Outcome(models.TextChoices):
+        PENDING = "pending", "Pending"
+        GRANTED = "granted", "Granted in full"
+        PARTIAL = "partial", "Partially granted"
+        DENIED = "denied", "Denied"
+        WITHDRAWN = "withdrawn", "Withdrawn (we dropped it)"
+
+    class Category(models.TextChoices):
+        ROOMS = "rooms", "Guest rooms (comps, rate, upgrades)"
+        ATTRITION = "attrition", "Attrition / cancellation terms"
+        FNB = "fnb", "Food & beverage"
+        MEETING_SPACE = "meeting_space", "Meeting space / rental"
+        AV = "av", "A/V and internet"
+        PARKING = "parking", "Parking / transport"
+        STAFF = "staff", "Staff rooms / office"
+        OTHER = "other", "Other"
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="concessions")
+    rfp = models.ForeignKey(
+        VenueRFP,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="concessions",
+        help_text="The RFP it was requested in (blank if asked later in negotiation).",
+    )
+    contract = models.ForeignKey(
+        EventContract,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="concessions",
+        help_text="The signed contract where it landed, if any.",
+    )
+    category = models.CharField(max_length=16, choices=Category.choices, default=Category.OTHER)
+    request = models.TextField(help_text='What we asked for, e.g. "1 comp room per 40 room nights".')
+    outcome = models.CharField(max_length=16, choices=Outcome.choices, default=Outcome.PENDING)
+    granted_terms = models.TextField(blank=True, help_text="What the venue actually agreed to (for partial grants).")
+    notes = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    ORG_PATH = "event__organization"
+    objects = OrgScopedManager()
+
+    class Meta:
+        ordering = ["event", "sort_order", "pk"]
+
+    def __str__(self) -> str:
+        return f"{self.request[:60]} — {self.get_outcome_display()}"
+
+    def clean(self):
+        if self.rfp_id and self.event_id and self.rfp.event_id != self.event_id:
+            raise ValidationError({"rfp": "That RFP belongs to another event."})
+        if self.contract_id and self.event_id and self.contract.event_id != self.event_id:
+            raise ValidationError({"contract": "That contract belongs to another event."})
 
 
 class Registration(TimeStampedModel):

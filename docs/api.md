@@ -19,10 +19,12 @@ conflicts) runs on every write.
 | `series/`, `events/` | Org-scoped. Event actions below |
 | `events/{id}/bundle/` | Event Bundle; `?audience=internal` includes unscheduled sessions and workflow fields |
 | `events/{id}/grid/` | Everything the drag-and-drop planner needs: rooms, time slots, placed items, unscheduled pool, conflicts |
+| `events/{id}/grid-version/` | Cheap change hash; the grid polls it to detect edits by others |
 | `events/{id}/conflicts/` | All conflicts (errors + warnings) |
 | `events/{id}/publish/` | POST `{formats?}` → 202, queues a publish run |
 | `events/{id}/copy-sessions/` | POST `{source_event, session_ids?, include_speakers, keep_schedule}` |
 | `event-rooms/`, `tracks/`, `time-slots/` | Per-event setup (`?event=`) |
+| `rfps/`, `concessions/` | Org-private venue negotiation: RFPs sent and concessions requested (`?event=&rfp=&outcome=`) |
 | `sessions/` | CRUD (`?event=&status=&title_status=&is_stock=&ready=1`). Room/time are read-only here |
 | `sessions/{id}/place/` | POST `{room, starts_at, ends_at, dry_run}` → 200 `{ok, saved, conflicts}`, or 409 if blocked |
 | `session-speakers/` | Attach speakers to sessions (speaker conflicts are checked) |

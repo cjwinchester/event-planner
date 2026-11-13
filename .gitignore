@@ -227,3 +227,9 @@ private_media/
 published/
 staticfiles/
 .ruff_cache/
+
+# Tailwind standalone CLI binary (downloaded by bin/tailwindcss-build.sh)
+bin/tailwindcss
+
+# Built by bin/tailwindcss-build.sh
+static/css/app.css

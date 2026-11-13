@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "apps.reporting",
     "apps.assistant",
     "apps.api",
+    "apps.planner",
 ]
 
 MIDDLEWARE = [
@@ -121,6 +122,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = env("MEDIA_URL", default="/media/")
 MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
@@ -201,7 +203,8 @@ SOCIALACCOUNT_PROVIDERS = {
         "EMAIL_AUTHENTICATION": True,
     }
 }
-LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "/plan/"
 
 # --- REST API -------------------------------------------------------------
 REST_FRAMEWORK = {

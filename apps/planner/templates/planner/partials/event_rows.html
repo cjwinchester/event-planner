@@ -1,0 +1,14 @@
+<ul class="divide-y divide-gray-200 rounded border border-gray-200 bg-white">
+  {% for e in events %}
+    <li class="flex items-center gap-4 px-4 py-3">
+      <div class="flex-1">
+        <a class="font-medium text-blue-700 hover:underline" href="{% url 'planner:grid' e.organization.slug e.slug %}">{{ e.name }}</a>
+        <div class="text-sm text-gray-500">{{ e.organization.name }} · {{ e.start_date|date:"M j" }}–{{ e.end_date|date:"M j, Y" }} · {{ e.get_status_display }}</div>
+      </div>
+      <a class="btn-secondary" href="{% url 'planner:grid' e.organization.slug e.slug %}">Schedule grid</a>
+      <a class="btn-secondary" href="{% url 'admin:events_event_change' e.pk %}">Edit</a>
+    </li>
+  {% empty %}
+    <li class="px-4 py-3 text-sm text-gray-500">None.</li>
+  {% endfor %}
+</ul>

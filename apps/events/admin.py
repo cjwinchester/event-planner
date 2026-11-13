@@ -7,6 +7,7 @@ from apps.program.copying import copy_sessions
 from apps.program.models import TimeSlot, Track
 
 from .models import (
+    Concession,
     Event,
     EventContract,
     EventRoom,
@@ -16,6 +17,7 @@ from .models import (
     Registration,
     RegistrationSnapshot,
     RoomPickupSnapshot,
+    VenueRFP,
 )
 
 
@@ -225,3 +227,45 @@ class RegistrationSnapshotAdmin(OrgScopedAdmin):
         for event in queryset:
             sync_event_registrations.enqueue(event.pk, request.user.pk)
             self.message_user(request, f"{event}: registration sync queued — see Sync runs.", messages.SUCCESS)
+
+
+class ConcessionInline(OrgScopedInline, admin.TabularInline):
+    model = Concession
+    extra = 1
+    fields = ["category", "request", "outcome", "granted_terms", "notes", "contract", "sort_order"]
+
+
+@admin.register(VenueRFP)
+class VenueRFPAdmin(OrgScopedAdmin):
+    """RFPs sent to venues, with the concessions requested in each.
+    Private to the organization."""
+
+    list_display = ["__str__", "event", "venue", "status", "sent_on", "response_due", "concession_summary"]
+    list_filter = ["event__organization", "event", "status"]
+    autocomplete_fields = ["event", "venue"]
+    inlines = [ConcessionInline]
+
+    @admin.display(description="Concessions")
+    def concession_summary(self, obj):
+        rows = list(obj.concessions.values_list("outcome", flat=True))
+        if not rows:
+            return "—"
+        counts = {label: rows.count(value) for value, label in Concession.Outcome.choices if rows.count(value)}
+        return ", ".join(f"{n} {label.lower()}" for label, n in counts.items())
+
+    def save_formset(self, request, form, formset, change):
+        # Concessions entered on an RFP belong to that RFP's event.
+        for obj in formset.save(commit=False):
+            obj.event_id = form.instance.event_id
+            obj.save()
+        for obj in formset.deleted_objects:
+            obj.delete()
+        formset.save_m2m()
+
+
+@admin.register(Concession)
+class ConcessionAdmin(OrgScopedAdmin):
+    list_display = ["request", "event", "category", "outcome", "rfp", "contract"]
+    list_filter = ["event__organization", "event", "outcome", "category"]
+    search_fields = ["request", "granted_terms", "notes"]
+    autocomplete_fields = ["event"]

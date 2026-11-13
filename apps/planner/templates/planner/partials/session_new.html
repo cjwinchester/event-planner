@@ -1,0 +1,9 @@
+<div class="panel">
+  <h2 class="panel-title">New session</h2>
+  <form hx-post="{% url 'planner:session-new' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+    {% for field in form %}
+      <label class="field"><span>{{ field.label }}</span>{{ field }}{% for err in field.errors %}<em class="panel-error">{{ err }}</em>{% endfor %}</label>
+    {% endfor %}
+    <button class="btn">Create</button>
+  </form>
+</div>

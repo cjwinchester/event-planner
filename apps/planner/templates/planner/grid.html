@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ event.name }} · Grid{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/grid.css' %}">{% endblock %}
+{% block breadcrumbs %}
+  <span class="text-gray-400">/</span>
+  <span class="font-medium">{{ event.name }}</span>
+  <span class="text-sm text-gray-500">times in {{ event.timezone }}</span>
+{% endblock %}
+{% block content %}
+{{ config|json_script:"planner-config" }}
+<div id="planner" class="planner">
+  <div class="planner-toolbar">
+    <div id="day-tabs" class="day-tabs" role="tablist" aria-label="Event days"></div>
+    <div class="toolbar-actions">
+      <button type="button" class="btn-secondary" data-action="zoom-out" title="Zoom out">−</button>
+      <button type="button" class="btn-secondary" data-action="zoom-in" title="Zoom in">+</button>
+      <button type="button" class="btn-secondary" data-action="undo" disabled title="Undo last move (Ctrl+Z)">Undo</button>
+      <button type="button" class="btn-secondary" data-action="refresh">Refresh</button>
+      <button type="button" class="btn-secondary" data-action="slots">Time slots</button>
+      <button type="button" class="btn-secondary" data-action="conflicts">Conflicts <span id="conflict-count" class="badge"></span></button>
+    </div>
+  </div>
+  <div id="stale-banner" class="stale-banner" hidden>
+    Someone else changed this schedule. <button type="button" class="underline" data-action="refresh">Refresh</button>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <div class="planner-body">
+    <aside id="pool" class="pool" aria-label="Unscheduled">
+      <div class="pool-head">
+        <h2>Unscheduled <span id="pool-count"></span></h2>
+        {% if request.can_edit %}
+          <button type="button" class="btn-secondary" data-action="new-session">+ New</button>
+        {% endif %}
+      </div>
+      <input id="pool-search" class="input" type="search" placeholder="Search title or speaker">
+      <div class="pool-filters">
+        <select id="pool-track" class="input"><option value="">All tracks</option></select>
+        <select id="pool-type" class="input"><option value="">All types</option></select>
+        <label class="text-xs"><input id="pool-mine" type="checkbox"> Mine only</label>
+      </div>
+      <ul id="pool-list" class="pool-list" data-drop="pool"></ul>
+    </aside>
+
+    <section id="grid-scroll" class="grid-scroll" aria-label="Schedule grid">
+      <div id="grid-loading" class="p-6 text-sm text-gray-500">Loading grid…</div>
+      <div id="grid" class="grid-root" hidden></div>
+    </section>
+
+    <aside id="side-panel" class="side-panel" hidden>
+      <button type="button" class="side-close" data-action="close-panel" aria-label="Close panel">×</button>
+      <div id="side-panel-body"></div>
+    </aside>
+  </div>
+</div>
+<script type="module" src="{% static 'js/grid.js' %}"></script>
+{% endblock %}

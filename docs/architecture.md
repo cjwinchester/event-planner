@@ -100,6 +100,10 @@ erDiagram
   (setup, headcount, A/V, F&B, notes), so a hotel spec sheet can be generated from both.
 - **LogisticsItem.blocks_room** (or its category default): registration desks block a room;
   water service and catering share one with sessions.
+- **VenueRFP** (RFP document + the venue's proposal, status, dates) and **Concession**
+  (category, what we asked, outcome PENDING / GRANTED / PARTIAL / DENIED / WITHDRAWN,
+  `granted_terms`, notes; optionally linked to the RFP it was asked in and the contract it
+  landed in) are org-private negotiation records, like contracts.
 - **EventContract** stores the four F&B minimums (overall/affiliate × with/without service
   and tax), AV cost, attendee room rate and room-block total; `RoomPickupSnapshot` is the
   pickup time series. The contract PDF uses the `private` storage (signed URLs on S3).
@@ -117,6 +121,14 @@ erDiagram
 `program.conflicts.check_*()` against the proposed placement, save only if there are no
 ERROR conflicts, and return errors and warnings either way. Model `clean()` runs the same
 checks for admin and API saves. `event_conflicts(event)` sweeps the whole event for the grid.
+
+**Planner grid** — `planner/grid` page loads `GET /api/v1/events/{id}/grid/`
+(`program.grid.grid_payload`: rooms with their atoms, time slots, placed + unscheduled items,
+conflicts, a `version` hash). `static/js/grid.js` renders rooms × time for one day, drags
+with pointer events, previews conflicts locally (shared room atoms, shared speakers), and
+commits through `place/` (server is authoritative; 409 reverts). It polls `grid-version/`
+every 20 s to flag edits by others. Side panels are server-rendered HTMX partials
+(`apps/planner`) that answer `HX-Trigger: grid:refresh` after saves.
 
 **Pitches** — `pitches.services`: `submit_pitch` (checks the pitch window, validates custom
 answers, grants sharing) → `queue_decision` (ACCEPT_QUEUE / DECLINE_QUEUE / WAITLISTED) →

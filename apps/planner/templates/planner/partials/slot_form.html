@@ -1,0 +1,6 @@
+<form hx-post="{% url 'planner:slot-edit' event.organization.slug event.slug slot.pk %}" hx-target="#side-panel-body" class="slot-edit">
+  {{ form.non_field_errors }}
+  {{ form.day }} {{ form.start }} {{ form.end }} {{ form.label }} {{ form.kind }}
+  {% for f in form %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endfor %}
+  <button class="btn">Save</button>
+</form>

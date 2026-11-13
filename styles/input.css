@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@source "../apps";
+@source "../templates";
+@source "../static/js";
+
+/* A few named components so templates read as intent. Grid geometry lives
+   in static/css/grid.css (plain CSS) so the planner works even before the
+   Tailwind build has run. */
+@layer components {
+  .btn { @apply inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300; }
+  .btn-secondary { @apply inline-flex items-center gap-1 rounded bg-white px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50; }
+  .btn-danger { @apply inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700; }
+  .field { @apply mb-3 block text-sm; }
+  .field > span { @apply mb-1 block font-medium text-gray-700; }
+  .input { @apply w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none; }
+  .badge { @apply inline-block rounded px-1.5 py-0.5 text-xs font-medium; }
+}

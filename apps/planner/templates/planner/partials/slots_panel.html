@@ -1,0 +1,42 @@
+<div class="panel" id="slots-panel">
+  <h2 class="panel-title">Time slots</h2>
+  <p class="text-sm text-gray-500">Grid rows for each day. Sessions snap to them when dropped from the pool.</p>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  <form class="mb-3" hx-get="{% url 'planner:slots' event.organization.slug event.slug %}" hx-target="#side-panel-body" hx-trigger="change">
+    <select name="day" class="input">
+      {% for d in event.days %}<option value="{{ d|date:'Y-m-d' }}" {% if d|date:'Y-m-d' == day %}selected{% endif %}>{{ d|date:"D M j" }}</option>{% endfor %}
+    </select>
+  </form>
+  <ul class="slot-list">
+    {% for s in slots %}
+      <li id="slot-{{ s.obj.pk }}">
+        <span><strong>{{ s.start|time:"g:i" }}–{{ s.end|time:"g:i A" }}</strong> {{ s.obj.label }} <em class="text-xs text-gray-500">{{ s.obj.get_kind_display }}</em></span>
+        {% if can_edit %}
+          <button class="text-xs text-blue-700" hx-get="{% url 'planner:slot-edit' event.organization.slug event.slug s.obj.pk %}" hx-target="#slot-{{ s.obj.pk }}" hx-swap="innerHTML">edit</button>
+          <button class="text-xs text-red-700" hx-post="{% url 'planner:slot-delete' event.organization.slug event.slug s.obj.pk %}" hx-target="#side-panel-body" hx-confirm="Delete this slot?">delete</button>
+        {% endif %}
+      </li>
+    {% empty %}<li class="text-sm text-gray-500">No slots on this day yet.</li>{% endfor %}
+  </ul>
+  {% if can_edit %}
+    <h3 class="panel-section">Add a slot</h3>
+    <form hx-post="{% url 'planner:slots' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+      {{ form.non_field_errors }}
+      <div class="grid grid-cols-2 gap-2">
+        <label class="field col-span-2"><span>Day</span>{{ form.day }}</label>
+        <label class="field"><span>Start</span>{{ form.start }}</label>
+        <label class="field"><span>End</span>{{ form.end }}</label>
+        <label class="field col-span-2"><span>Label</span>{{ form.label }}</label>
+        <label class="field col-span-2"><span>Kind</span>{{ form.kind }}</label>
+      </div>
+      {% for f in form %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endfor %}
+      <button class="btn">Add slot</button>
+    </form>
+    <h3 class="panel-section">Copy a day's slots</h3>
+    <form hx-post="{% url 'planner:slots-copy' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+      <label class="field"><span>From</span>{{ copy_form.from_day }}</label>
+      <div class="field"><span>To</span>{{ copy_form.to_days }}</div>
+      <button class="btn-secondary">Copy slots</button>
+    </form>
+  {% endif %}
+</div>

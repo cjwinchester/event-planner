@@ -6,6 +6,10 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
 - `uv run pytest` (needs PostGIS; `DATABASE_URL` in `.env`). On macOS, PDF tests need
   `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib`; otherwise they skip.
 - `uv run ruff check . && uv run ruff format --check .`
+- Browser tests (Playwright, marker `browser`): `uv run playwright install chromium` once.
+  Set `GRID_SCREENSHOT=/path.png` to save a screenshot of the grid test.
+- CSS: `bash bin/tailwindcss-build.sh` → `static/css/app.css` (gitignored). Grid geometry
+  is plain CSS in `static/css/grid.css` so drag math never depends on the build.
 - `uv run python manage.py makemigrations --check --dry-run` must report no changes.
 
 ## Invariants (don't break these)
@@ -13,7 +17,7 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
   Admin classes use `core.admin.OrgScopedAdmin`/`OrgScopedInline`. API viewsets use
   `api.base.OrgScopedViewSet` with `OrgModelSerializer`. Role checks go through
   `organizations.permissions`. Add a tenancy test for any new org-owned endpoint.
-- **Privacy**: contracts/costs (`EventContract`), registrations, `EventSpeaker`, form answers
+- **Privacy**: contracts/costs (`EventContract`), RFPs and concessions, registrations, `EventSpeaker`, form answers
   and internal notes never reach a public bundle, feed or another org. Speaker private
   fields require a `SpeakerShareGrant` (`speakers.sharing`).
 - **One schema**: exporters render only from the Event Bundle dict, and the importer

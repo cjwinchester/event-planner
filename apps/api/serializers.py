@@ -10,7 +10,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.commerce.models import Company, ExhibitorBooking, Sponsorship
-from apps.events.models import Event, EventRoom, EventSeries, EventVenue
+from apps.events.models import Concession, Event, EventRoom, EventSeries, EventVenue, VenueRFP
 from apps.organizations.models import Organization
 from apps.organizations.permissions import organization_ids_for
 from apps.pitches.models import Pitch, PitchTarget, PitchVote
@@ -402,3 +402,21 @@ class PublishRequestSerializer(serializers.Serializer):
 class AskSerializer(serializers.Serializer):
     organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
     question = serializers.CharField(max_length=2000)
+
+
+class VenueRFPSerializer(OrgModelSerializer):
+    class Meta:
+        model = VenueRFP
+        fields = [
+            "id", "event", "venue", "title", "rfp_file", "response_file", "status", "sent_on", "response_due",
+            "notes",
+        ]  # fmt: skip
+
+
+class ConcessionSerializer(OrgModelSerializer):
+    class Meta:
+        model = Concession
+        fields = [
+            "id", "event", "rfp", "contract", "category", "request", "outcome", "granted_terms", "notes",
+            "sort_order",
+        ]  # fmt: skip

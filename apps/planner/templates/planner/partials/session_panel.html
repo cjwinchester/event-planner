@@ -1,0 +1,48 @@
+<div class="panel" id="session-panel" data-session-id="{{ session.pk }}">
+  <div class="panel-kicker">Session #{{ session.public_id }} · {{ session.get_status_display }}{% if session.is_ready %} · <span class="text-green-700">ready to publish</span>{% else %} · <span class="text-gray-500">not ready: {{ session.readiness_problems|join:", " }}</span>{% endif %}</div>
+  <h2 class="panel-title">{{ session.title }}</h2>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  {% for e in errors %}<p class="panel-error">{{ e }}</p>{% endfor %}
+  {% if conflicts %}
+    <ul class="panel-conflicts">{% for c in conflicts %}<li class="{{ c.severity }}">{{ c.message }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <h3 class="panel-section">Placement</h3>
+  <form hx-post="{% url 'planner:session-place' session.pk %}" hx-target="#side-panel-body" class="placement-form">
+    {{ placement.non_field_errors }}
+    <div class="grid grid-cols-2 gap-2">
+      <label class="field col-span-2"><span>Room</span>{{ placement.room }}</label>
+      <label class="field col-span-2"><span>Day</span>{{ placement.day }}</label>
+      <label class="field"><span>Start</span>{{ placement.start }}</label>
+      <label class="field"><span>End</span>{{ placement.end }}</label>
+    </div>
+    {% if can_edit %}<button class="btn">Move</button>{% endif %}
+    <span class="text-xs text-gray-500">Clear every field to unschedule.</span>
+  </form>
+
+  <h3 class="panel-section">Details</h3>
+  <form hx-post="{% url 'planner:session-panel' session.pk %}" hx-target="#side-panel-body">
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label class="field"><span>{{ field.label }}</span>{{ field }}{% for err in field.errors %}<em class="panel-error">{{ err }}</em>{% endfor %}</label>
+    {% endfor %}
+    {% if can_edit %}<button class="btn">Save</button>{% endif %}
+  </form>
+
+  <h3 class="panel-section">Speakers</h3>
+  <ul class="panel-speakers">
+    {% for row in speakers %}
+      <li>
+        <span>{{ row.speaker }}{% if row.speaker.affiliation %}, <span class="text-gray-500">{{ row.speaker.affiliation }}</span>{% endif %} <em class="text-xs text-gray-500">{{ row.get_role_display }}</em></span>
+        {% if can_edit %}<button class="text-xs text-red-700" hx-post="{% url 'planner:session-speaker-remove' session.pk row.pk %}" hx-target="#side-panel-body">remove</button>{% endif %}
+      </li>
+    {% empty %}<li class="text-sm text-gray-500">No speakers yet.</li>{% endfor %}
+  </ul>
+  {% if can_edit %}
+    <input class="input" type="search" name="q" placeholder="Add a speaker: type a name"
+           hx-get="{% url 'planner:speaker-search' session.pk %}" hx-trigger="input changed delay:250ms" hx-target="#speaker-results">
+    <div id="speaker-results"></div>
+  {% endif %}
+
+  <p class="mt-6 text-sm"><a class="text-blue-700 hover:underline" href="{% url 'admin:program_session_change' session.pk %}">Open full edit form →</a></p>
+</div>

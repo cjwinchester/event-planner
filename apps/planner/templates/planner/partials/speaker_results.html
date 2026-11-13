@@ -1,0 +1,16 @@
+<ul class="speaker-results">
+  {% for sp in results %}
+    <li>
+      <form hx-post="{% url 'planner:session-speaker-add' session.pk %}" hx-target="#side-panel-body" class="flex items-center gap-2">
+        <input type="hidden" name="speaker" value="{{ sp.pk }}">
+        <span class="flex-1">{{ sp }}{% if sp.affiliation %}, <span class="text-gray-500">{{ sp.affiliation }}</span>{% endif %}</span>
+        <select name="role" class="input w-auto">
+          <option value="speaker">Speaker</option><option value="moderator">Moderator</option><option value="coach">Coach / TA</option><option value="host">Host</option>
+        </select>
+        <button class="btn">Add</button>
+      </form>
+    </li>
+  {% empty %}
+    <li class="text-sm text-gray-500">Type at least two letters. New people are added in the speaker directory.</li>
+  {% endfor %}
+</ul>

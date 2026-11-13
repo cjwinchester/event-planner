@@ -39,6 +39,7 @@ package = false
 dev = [
     "pytest>=9.2.0",
     "pytest-django>=4.14.0",
+    "pytest-playwright>=0.10.0",
     "ruff>=0.17.5",
 ]
 
@@ -48,6 +49,7 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 testpaths = ["apps"]
 addopts = "--reuse-db -q"
+markers = ["browser: Playwright tests (need `uv run playwright install chromium`)"]
 
 [tool.ruff]
 line-length = 120

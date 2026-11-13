@@ -1,6 +1,22 @@
 # Continuing development
 
-## What exists (phase 1)
+## What exists
+
+**Phase 2 (in progress):** staff planner at `/plan/`. It has an event list and the schedule
+grid. In the grid you can:
+- switch days with tabs;
+- drag sessions in from the unscheduled pool and back out;
+- move and resize, with snapping to time slots;
+- see local conflict previews and server-confirmed placement;
+- undo the last move;
+- get a stale-data banner when someone else edits;
+- see combined rooms blocked in their part columns.
+
+The side panels cover session quick edit, keyboard placement, speakers, a new-session
+form, and time slots (add/edit/delete/copy a day). There are also venue RFPs and
+concession tracking (admin + API). Browser tests use Playwright.
+
+**Phase 1:**
 
 Steps 1–5 of [the spec](spec/initial-prompt.txt): project setup, full models and
 migrations, org-scoped admin with validation, REST API plus export and publishing services,
@@ -9,12 +25,10 @@ clean.
 
 ## Phase 2 roadmap (suggested order)
 
-1. **Staff UI shell** (Django templates + HTMX + Alpine + Tailwind, agreed stack):
-   org switcher, event hub.
-2. **Drag-and-drop schedule grid**: rooms × time slots per day from
-   `GET events/{id}/grid/`, SortableJS for drag, `place` with `dry_run` for live
-   conflict previews (contract in [api.md](api.md)). Show logistics items alongside sessions
-   and the unscheduled pool in a sidebar.
+1. ~~Staff UI shell~~ and ~~drag-and-drop schedule grid~~ (done). Follow-ups: event hub
+   page, logistics quick-edit panel (logistics cards currently open the admin), an
+   all-days overview, printing the grid, and live push instead of polling.
+2. **Venue negotiation view**: RFP/concession comparison across hotels in the planner.
 3. **Pitch review dashboard**: filters, per-staffer votes, queue/inform buttons (the admin
    actions already implement the logic).
 4. **Notifications**: implement the `notifier` hook for `pitches.services.inform`
