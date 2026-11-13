@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% comment %}
+Overrides django-allauth's bare layout so login, sign-up, password reset and
+email pages use the site header and stylesheet. allauth pages fill
+`head_title` and `content`; we wrap `content` in a centered card styled by
+the .auth-card rules in styles/input.css (allauth's element templates emit
+plain <h1>/<p>/<input>/<button> markup).
+{% endcomment %}
+{% block title %}{% block head_title %}{% endblock head_title %} · Event Planner{% endblock title %}
+{% block head %}{% block extra_head %}{% endblock extra_head %}{% endblock head %}
+{% block main %}
+  <main class="auth-card">
+    {% if messages %}
+      <ul class="auth-messages">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% block content %}{% endblock content %}
+    {% if user.is_authenticated %}
+      <nav class="auth-links">
+        <a href="{% url 'account_email' %}">Email addresses</a>
+        <a href="{% url 'account_change_password' %}">Change password</a>
+        <a href="{% url 'socialaccount_connections' %}">Connected accounts</a>
+      </nav>
+    {% endif %}
+  </main>
+  {% block extra_body %}{% endblock extra_body %}
+{% endblock main %}

@@ -36,6 +36,10 @@ class TestAccess:
     def test_login_required(self, client, world):
         assert client.get(grid_url(world)).status_code == 302
 
+    def test_login_page_uses_site_layout(self, client):
+        body = client.get(reverse("account_login")).content.decode()
+        assert "css/app.css" in body and 'class="auth-card"' in body
+
 
 @pytest.mark.django_db
 class TestSessionPanel:

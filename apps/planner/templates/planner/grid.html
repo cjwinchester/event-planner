@@ -7,7 +7,7 @@
   <span class="font-medium">{{ event.name }}</span>
   <span class="text-sm text-gray-500">times in {{ event.timezone }}</span>
 {% endblock %}
-{% block content %}
+{% block main %}
 {{ config|json_script:"planner-config" }}
 <div id="planner" class="planner">
   <div class="planner-toolbar">
