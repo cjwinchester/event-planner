@@ -11,6 +11,12 @@ Converting legacy data (SuperGrid sheets, old schedule-ui feeds, other vendors' 
 happens upstream: write a script that outputs a bundle, then
 `manage.py import_event bundle.json --org <slug> --dry-run`.
 
+Worked example: [`tools/converters/rescue_to_bundle.py`](../tools/converters/rescue_to_bundle.py)
+converts conference-schedule-rescue files. NICAR 2026 (233 sessions, 19 rooms) and AccessFest
+2026 have both gone through it and imported cleanly. Its docstring records the mapping
+decisions (integer IDs from hex, local→UTC across DST, combined rooms, canceled titles); copy it
+for other formats.
+
 ## Shape
 
 ```json
@@ -44,6 +50,8 @@ happens upstream: write a script that outputs a bundle, then
   include `email` (internal bundles only) so the importer can match existing profiles.
   Room and venue `id`s only need to be consistent within one bundle; rooms are matched by
   name within the venue.
+- **Combined rooms**: give the combined room `parts: [room ids]` (e.g. "E-F" → E, F) so
+  booking it blocks its parts. The importer only sets parts on rooms that have none yet.
 - **Track ids** are slugs (`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`).
 - **HTML** in `description` / `bio` is sanitized on export; send simple HTML or plain text.
 - **Speakers' social links**: `{"kind": "linkedin", "label": "LinkedIn", "url": "..."}`.

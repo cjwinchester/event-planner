@@ -45,6 +45,23 @@ clean.
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
 
+## Findings from importing real data (NICAR 2026, AccessFest 2026)
+
+- **Speaker duplicates across events.** The rescue files give the same person a different
+  ID per conference: 20 people appear in both files and became 2 profiles each. A merge
+  service + "likely duplicates" report/admin action is now the top data-quality need
+  (`SpeakerProfile.merged_into` is already modeled).
+- **Real schedules contain "conflicts" that were intentional.** NICAR 2026 had a speaker on
+  an all-day pre-registration class (PyCAR) and a panel at the same time, a speaker on two
+  sessions at once, and the welcome reception overlapping game night in one space. Hard
+  blocking is right for new planning, but staff likely need an "acknowledge / allow this
+  conflict" override with a note.
+- **Legacy data marks cancellations in titles** ("CANCELLED - …"); the converter handles it.
+- **Virtual events had no room data** (AccessFest): its sessions import unscheduled until
+  staff set up virtual rooms (e.g. Zoom Room 1–5) and place them.
+- **Non-room locations** ("Near the escalator near White River E") currently become rooms;
+  they may fit better as logistics locations.
+
 ## Known gaps and TODOs
 
 | Area | Gap |

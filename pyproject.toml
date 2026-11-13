@@ -47,7 +47,7 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
-testpaths = ["apps"]
+testpaths = ["apps", "tools"]
 addopts = "--reuse-db -q"
 markers = ["browser: Playwright tests (need `uv run playwright install chromium`)"]
 

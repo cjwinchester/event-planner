@@ -147,7 +147,12 @@
         "setup": {"type": "string"},
         "computer_os": {"enum": ["", "byo", "pc", "mac"]},
         "is_recorded": {"type": "boolean"},
-        "sort_order": {"type": "integer"}
+        "sort_order": {"type": "integer"},
+        "parts": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "For a combined (airwall) room: the ids of the rooms it is made of, e.g. 'E-F' = ['rE', 'rF']."
+        }
       }
     },
     "track": {

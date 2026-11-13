@@ -76,6 +76,7 @@ apps/
   api/             DRF v1: viewsets, serializers, tenancy-safe base classes
   planner/         staff UI: schedule grid page (static/js/grid.js) + HTMX side panels
 schemas/event-bundle/v1.json   the one interchange format
+tools/converters/              upstream converters → Event Bundle (example: rescue_to_bundle.py)
 ```
 
 Full model map, tenancy and data-flow diagrams: [docs/architecture.md](docs/architecture.md).

@@ -191,6 +191,15 @@ def _import(bundle: dict, org, result: ImportResult) -> None:
         result.bump("event rooms", created)
         room_by_key[r["id"]] = event_room
 
+    # Combined rooms: only fill in parts for rooms that don't have any yet —
+    # the shared venue directory may already know better.
+    for r in bundle["rooms"]:
+        parts = [room_by_key[p].room for p in r.get("parts", []) if p in room_by_key]
+        combo = room_by_key[r["id"]].room
+        if parts and not combo.parts.exists():
+            combo.parts.set(parts)
+            result.bump("combined rooms", True)
+
     # ---- tracks, lookups --------------------------------------------------
     track_by_slug = {}
     for i, t in enumerate(bundle["tracks"]):

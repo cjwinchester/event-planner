@@ -30,6 +30,7 @@ from django.utils import timezone
 from apps.commerce.models import DealStatus, ExhibitorBooking, Sponsorship
 from apps.program.models import LogisticsItem, Session, SessionSpeaker
 from apps.speakers.models import EventSpeaker, SpeakerShareGrant
+from apps.venues.models import Room
 
 SCHEMA_VERSION = "1.0"
 SCHEMA_PATH = Path(settings.BASE_DIR) / "schemas" / "event-bundle" / "v1.json"
@@ -213,6 +214,13 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
     # ---- rooms, tracks, venues -----------------------------------------
     event_rooms = list(event.event_rooms.select_related("room__floorplan").order_by("sort_order", "pk"))
     used_room_ids = {s.room_id for s in sessions}
+    er_by_room = {er.room_id: er.pk for er in event_rooms}
+    parts_by_room: dict[int, list[int]] = {}
+    for combo_id, part_id in Room.parts.through.objects.filter(from_room_id__in=er_by_room).values_list(
+        "from_room_id", "to_room_id"
+    ):
+        if part_id in er_by_room:
+            parts_by_room.setdefault(combo_id, []).append(er_by_room[part_id])
     room_dicts = []
     for er in event_rooms:
         if public and (not er.is_public or (er.pk not in used_room_ids and not er.is_schedulable)):
@@ -232,6 +240,7 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
                 "computer_os": er.computer_os,
                 "is_recorded": er.is_recorded,
                 "sort_order": er.sort_order,
+                "parts": [room_key(pk) for pk in sorted(parts_by_room.get(room.pk, []))],
             }
         )
 
