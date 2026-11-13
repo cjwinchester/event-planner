@@ -1,0 +1,3 @@
+<strong>{{ counts.total }} pitches</strong>
+{% for label, n, value in counts.by_status %}<span class="badge status-{{ value }}">{{ label }}: {{ n }}</span>{% endfor %}
+{% if counts.unvoted %}<span class="badge bg-amber-100 text-amber-800">You haven't voted on {{ counts.unvoted }}</span>{% endif %}

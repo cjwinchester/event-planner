@@ -14,7 +14,23 @@ grid. In the grid you can:
 
 The side panels cover session quick edit, keyboard placement, speakers, a new-session
 form, and time slots (add/edit/delete/copy a day). There are also venue RFPs and
-concession tracking (admin + API). Browser tests use Playwright.
+concession tracking (admin + API).
+
+**Pitch review dashboard** (`/plan/<org>/<event>/pitches/`):
+- **Table:** one row per pitch, filters, sorting, and keyboard review (`j`/`k`, `y`/`m`/`n`,
+  `x`, Enter).
+- **Blind voting:** other people's votes appear only after you vote, or once a decision
+  exists.
+- **Side panel:** description, custom answers, the pitcher's history with your
+  organization, votes and comments, notes, tracks and assignee.
+- **Bulk actions:** queue accept/decline, waitlist, assign, combo.
+- **Finalize:** a review page; only org admins can finalize, which creates sessions.
+- **Staff-entered pitches:** staff can add a pitch on someone's behalf. That grants only
+  the weaker ENGAGEMENT share, so a speaker's revocation is never overridden.
+- **"Combo"** is the house term for merging pitches (stored as status `merged`).
+- Pitchers aren't notified yet (deferred).
+
+Browser tests use Playwright.
 
 **Phase 1:**
 
@@ -29,7 +45,9 @@ clean.
    page, logistics quick-edit panel (logistics cards currently open the admin), an
    all-days overview, printing the grid, and live push instead of polling.
 2. **Venue negotiation view**: RFP/concession comparison across hotels in the planner.
-3. **Pitch review dashboard**: filters, per-staffer votes, queue/inform buttons (the admin
+3. ~~**Pitch review dashboard**~~ (done). Follow-ups: pitcher notifications (deferred by
+   choice), a "speaker ideas" pool view, comparing duplicate pitches across events.
+   Originally planned as: **Pitch review dashboard**: filters, per-staffer votes, queue/inform buttons (the admin
    actions already implement the logic).
 4. **Notifications**: implement the `notifier` hook for `pitches.services.inform`
    (templated email to pitchers). Add speaker-info form invites (`FormQuestion.Form.SPEAKER_INFO`).
@@ -44,6 +62,23 @@ clean.
    conference-schedule-ui build (`SCHEDULE_UI_DIST_DIR`), or port that UI to read the
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
+
+## Requested, not started
+
+- **Hotel share link + hotel change tracking** (requested 2026-11-13). A read-only,
+  revocable link (no login) for hotel staff. From a per-event cutoff (a few days before the
+  conference), changes to scheduled session titles are recorded and float to the top of the
+  hotel's view, since the hotel retypes titles into its board readers by hand. An org admin
+  confirms each change was made and marks it done (no integration with board readers is
+  possible). Draft design, awaiting answers:
+  - also track cancellations, room/time moves and late additions?
+  - consolidate repeated edits of one session into a single pending row;
+  - who can mark a change done;
+  - link expiry.
+
+  The hotel spec sheet ("For Hotel" orders) is the natural second section of the same link.
+- **Speaker reconciliation** (dedupe/merge across events): deferred by choice; design notes are
+  in the findings below.
 
 ## Findings from importing real data (NICAR 2026, AccessFest 2026)
 

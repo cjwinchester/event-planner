@@ -3,8 +3,7 @@
 {% block title %}{{ event.name }} · Grid{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'css/grid.css' %}">{% endblock %}
 {% block breadcrumbs %}
-  <span class="text-gray-400">/</span>
-  <span class="font-medium">{{ event.name }}</span>
+  {% include "planner/partials/event_nav.html" %}
   <span class="text-sm text-gray-500">times in {{ event.timezone }}</span>
 {% endblock %}
 {% block main %}

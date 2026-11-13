@@ -74,14 +74,14 @@ def test_queue_then_inform_creates_sessions_once(world, open_event):
 
 
 @pytest.mark.django_db
-def test_merge_folds_speakers_into_primary(world, open_event):
+def test_combo_folds_speakers_into_primary(world, open_event):
     from apps.speakers.models import SpeakerProfile
 
     carol = SpeakerProfile.objects.create(first_name="Carol")
     p1 = services.submit_pitch(submitter=world.alice, title="A", description="D", events=[open_event])
     p2 = services.submit_pitch(submitter=carol, title="B", description="D", events=[open_event])
     t1, t2 = p1.targets.get(), p2.targets.get()
-    services.merge(t1, [t2], world.staff_user)
+    services.combo(t1, [t2], world.staff_user)
     t2.refresh_from_db()
     assert t2.status == Status.MERGED and t2.merged_into == t1
     session = services.accept(t1)

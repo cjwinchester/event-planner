@@ -130,7 +130,11 @@ commits through `place/` (server is authoritative; 409 reverts). It polls `grid-
 every 20 s to flag edits by others. Side panels are server-rendered HTMX partials
 (`apps/planner`) that answer `HX-Trigger: grid:refresh` after saves.
 
-**Pitches** — `pitches.services`: `submit_pitch` (checks the pitch window, validates custom
+**Pitches** — blind review: `services.votes_visible()` hides others' votes until you've voted
+on that pitch or a decision exists (planner, admin tallies and the API all apply it). Staff
+queue decisions; only org admins finalize (`inform`). `submit_pitch(on_behalf=True)` is for
+staff-entered pitches: it skips the window and grants only ENGAGEMENT sharing. "Combo" is the
+user-facing name for `services.combo()` (status value `merged`). `pitches.services`: `submit_pitch` (checks the pitch window, validates custom
 answers, grants sharing) → `queue_decision` (ACCEPT_QUEUE / DECLINE_QUEUE / WAITLISTED) →
 `inform` (finalizes the decision, creates sessions via `accept`, stamps `informed_at`, calls
 the notifier hook) → `confirm`. `merge` folds pitches together, and their speakers join the

@@ -16,7 +16,7 @@ from apps.program.models import Session, SessionSpeaker, SessionType, SkillLevel
 from apps.speakers import sharing
 from apps.speakers.models import EventSpeaker, SpeakerShareGrant
 
-from .models import FormQuestion, Pitch, PitchSpeaker, PitchTarget
+from .models import FormQuestion, Pitch, PitchSpeaker, PitchTarget, PitchVote
 
 Status = PitchTarget.Status
 
@@ -70,18 +70,23 @@ def submit_pitch(
     answers_by_event: dict | None = None,
     user=None,
     enforce_window: bool = True,
+    on_behalf: bool = False,
     **pitch_fields,
 ) -> Pitch:
     """Create a pitch and one target per event.
 
     Pitching grants each event's organization access to the submitter's
     private profile fields (speaker-controlled sharing; see speakers.sharing).
-    Staff entering pitches on someone's behalf pass `enforce_window=False`.
+
+    `on_behalf=True` is for staff entering a pitch for someone (ideas from
+    staff, the speaker-ideas pool): it skips the pitch window, marks the
+    pitch STAFF, and grants sharing only as ENGAGEMENT — which, unlike a
+    pitch the speaker made themselves, never overrides their revocation.
     """
     events = list(events)
     if not events:
         raise PitchWorkflowError("Choose at least one event.")
-    if enforce_window:
+    if enforce_window and not on_behalf:
         closed = [e.name for e in events if not e.is_pitch_window_open()]
         if closed:
             raise PitchWorkflowError(f"Pitches aren't open for: {', '.join(closed)}.")
@@ -94,6 +99,7 @@ def submit_pitch(
             submitted_by_user=user,
             title=title,
             description=description,
+            source=Pitch.Source.STAFF if on_behalf else Pitch.Source.SPEAKER,
             **pitch_fields,
         )
         PitchSpeaker.objects.create(pitch=pitch, speaker=submitter, sort_order=0)
@@ -102,7 +108,8 @@ def submit_pitch(
                 PitchSpeaker.objects.get_or_create(pitch=pitch, speaker=sp, defaults={"sort_order": i})
         for event in events:
             PitchTarget.objects.create(pitch=pitch, event=event, answers=cleaned[event.pk])
-            sharing.grant(submitter, event.organization, SpeakerShareGrant.Source.PITCH)
+            source = SpeakerShareGrant.Source.ENGAGEMENT if on_behalf else SpeakerShareGrant.Source.PITCH
+            sharing.grant(submitter, event.organization, source)
     return pitch
 
 
@@ -214,17 +221,18 @@ def accept(target: PitchTarget, user=None) -> Session:
 
 
 @transaction.atomic
-def merge(primary: PitchTarget, others: Iterable[PitchTarget], user=None) -> int:
-    """Fold `others` into `primary` (same event). Their speakers join the
-    primary's session when it's accepted (or now, if already accepted)."""
+def combo(primary: PitchTarget, others: Iterable[PitchTarget], user=None) -> int:
+    """ "Combo" `others` into `primary` (same event): they close as combo'd
+    (stored status "merged") and their speakers join the primary's session
+    when it's accepted (or now, if already accepted)."""
     count = 0
     for other in others:
         if other.pk == primary.pk:
             continue
         if other.event_id != primary.event_id:
-            raise PitchWorkflowError("Can only merge pitches for the same event.")
+            raise PitchWorkflowError("Can only combo pitches for the same event.")
         if other.session_id:
-            raise PitchWorkflowError(f'"{other.pitch}" already has a session; merge sessions by hand.')
+            raise PitchWorkflowError(f'"{other.pitch}" already has a session; combine those sessions by hand.')
         other.merged_into = primary
         other.status = Status.MERGED
         other.decided_by = user
@@ -238,3 +246,27 @@ def merge(primary: PitchTarget, others: Iterable[PitchTarget], user=None) -> int
                     SessionSpeaker.objects.create(session=primary.session, speaker_id=ps.speaker_id)
                     EventSpeaker.objects.get_or_create(event=primary.event, speaker_id=ps.speaker_id)
     return count
+
+
+# ------------------------------------------------------------------ votes
+
+
+def cast_vote(target: PitchTarget, user, vote: str, comment: str | None = None) -> PitchVote:
+    if vote not in PitchVote.Vote.values:
+        raise PitchWorkflowError(f"Unknown vote {vote!r}.")
+    defaults = {"vote": vote}
+    if comment is not None:
+        defaults["comment"] = comment
+    obj, _ = PitchVote.objects.update_or_create(target=target, user=user, defaults=defaults)
+    return obj
+
+
+def votes_visible(target: PitchTarget, user, *, has_voted: bool | None = None) -> bool:
+    """Blind review: a user sees others' votes on a pitch only after voting on
+    it themselves — or once a decision has been queued or made, so whoever
+    finalizes can see the tally."""
+    if target.status != Status.SUBMITTED:
+        return True
+    if has_voted is None:
+        has_voted = target.votes.filter(user=user).exists()
+    return has_voted

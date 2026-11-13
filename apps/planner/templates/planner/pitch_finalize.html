@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Finalize decisions · {{ event.name }}{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}{% endblock %}
+{% block main %}
+<main class="mx-auto max-w-4xl p-6">
+  <p><a class="text-sm text-blue-700 hover:underline" href="{% url 'planner:pitches' event.organization.slug event.slug %}">← Back to pitches</a></p>
+  <h1 class="mb-1 mt-2 text-xl font-semibold">Queued decisions</h1>
+  {% if result %}
+    <p class="panel-ok">Finalized: {{ result.accepted }} accepted (sessions created in the grid's unscheduled pool), {{ result.declined }} declined.</p>
+  {% endif %}
+  <p class="mb-4 text-sm text-gray-600">Finalizing turns queued accepts into sessions and records every decision. Pitchers see the outcome only after this. Email notifications aren't built yet, so contact pitchers separately for now.</p>
+  <h2 class="mt-4 font-semibold">Accept ({{ accepts|length }})</h2>
+  <ul class="mb-4 list-disc pl-6 text-sm">{% for t in accepts %}<li>{{ t.pitch.title }} <span class="text-gray-500">— {{ t.pitch.submitted_by }}</span></li>{% empty %}<li class="list-none text-gray-500">None queued.</li>{% endfor %}</ul>
+  <h2 class="font-semibold">Decline ({{ declines|length }})</h2>
+  <ul class="mb-6 list-disc pl-6 text-sm">{% for t in declines %}<li>{{ t.pitch.title }} <span class="text-gray-500">— {{ t.pitch.submitted_by }}</span></li>{% empty %}<li class="list-none text-gray-500">None queued.</li>{% endfor %}</ul>
+  {% if accepts or declines %}
+    {% if is_admin %}
+      <form method="post">{% csrf_token %}<button class="btn">Finalize {{ total }} decision{{ total|pluralize }}</button></form>
+    {% else %}
+      <p class="text-sm text-gray-600">Only organization admins can finalize decisions.</p>
+    {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

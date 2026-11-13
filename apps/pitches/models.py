@@ -18,8 +18,9 @@ Review lifecycle per target (separating *deciding* from *telling*)::
 
 `accept()` (pitches.services) turns an accepted target into a
 program.Session (source=PITCH) with its speakers attached. Targets can be
-merged into another target ("combine these two pitches into one panel");
-merged targets' speakers join the surviving session on acceptance.
+"combo'd" into another target — the house term for merging ("combine these
+two pitches into one panel"; stored as status "merged" / `merged_into`).
+Combo'd targets' speakers join the surviving session on acceptance.
 
 Each event can add custom questions (`FormQuestion`) to its pitch form and
 speaker-info form; answers are stored as JSON keyed by question slug.
@@ -86,6 +87,10 @@ class FormQuestion(models.Model):
 class Pitch(TimeStampedModel):
     """A session proposal written by a speaker (global; targets are per event)."""
 
+    class Source(models.TextChoices):
+        SPEAKER = "speaker", "Submitted by the speaker"
+        STAFF = "staff", "Entered by staff"
+
     submitted_by = models.ForeignKey(
         "speakers.SpeakerProfile", on_delete=models.PROTECT, related_name="pitches_submitted"
     )
@@ -106,6 +111,12 @@ class Pitch(TimeStampedModel):
         default=True, help_text="Pitcher will plan/moderate the session if accepted."
     )
     submitted_at = models.DateTimeField(default=timezone.now)
+    source = models.CharField(
+        max_length=16,
+        choices=Source.choices,
+        default=Source.SPEAKER,
+        help_text="Staff-entered pitches don't grant the org access to the speaker's private details.",
+    )
 
     class Meta:
         ordering = ["-submitted_at"]
@@ -136,12 +147,13 @@ class PitchTarget(TimeStampedModel):
 
     class Status(models.TextChoices):
         SUBMITTED = "submitted", "Submitted"
-        ACCEPT_QUEUE = "accept_queue", "Accept (not yet informed)"
-        DECLINE_QUEUE = "decline_queue", "Decline (not yet informed)"
+        ACCEPT_QUEUE = "accept_queue", "Queued: accept"
+        DECLINE_QUEUE = "decline_queue", "Queued: decline"
         WAITLISTED = "waitlisted", "Waitlisted"
         ACCEPTED = "accepted", "Accepted"
         DECLINED = "declined", "Declined"
-        MERGED = "merged", "Merged into another pitch"
+        # "Combo" is the house term (the stored value stays "merged").
+        MERGED = "merged", "Combo'd into another pitch"
         WITHDRAWN = "withdrawn", "Withdrawn by pitcher"
 
     QUEUED = (Status.ACCEPT_QUEUE, Status.DECLINE_QUEUE)
@@ -182,9 +194,9 @@ class PitchTarget(TimeStampedModel):
     def clean(self):
         if self.merged_into_id:
             if self.merged_into_id == self.pk:
-                raise ValidationError({"merged_into": "Can't merge a pitch into itself."})
+                raise ValidationError({"merged_into": "Can't combo a pitch with itself."})
             if self.merged_into.event_id != self.event_id:
-                raise ValidationError({"merged_into": "Can only merge pitches for the same event."})
+                raise ValidationError({"merged_into": "Can only combo pitches for the same event."})
 
 
 class PitchVote(TimeStampedModel):

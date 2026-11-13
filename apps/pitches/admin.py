@@ -1,9 +1,10 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 
 from apps.core.admin import OrgScopedAdmin, OrgScopedInline
-from apps.organizations.permissions import organization_ids_for
+from apps.organizations.models import Membership
+from apps.organizations.permissions import has_role, organization_ids_for
 
 from . import services
 from .models import FormQuestion, Pitch, PitchSpeaker, PitchTarget, PitchVote
@@ -29,8 +30,7 @@ class PitchTargetAdmin(OrgScopedAdmin):
     readonly_fields = [
         "pitch", "event", "decided_by", "decided_at", "informed_at", "confirmed_at", "session", "merged_into",
     ]  # fmt: skip
-    inlines = [PitchVoteInline]
-    actions = ["queue_accept", "queue_decline", "waitlist", "inform_selected", "accept_now", "merge_into_first"]
+    actions = ["queue_accept", "queue_decline", "waitlist", "inform_selected", "accept_now", "combo_into_first"]
 
     def get_queryset(self, request):
         return (
@@ -40,6 +40,8 @@ class PitchTargetAdmin(OrgScopedAdmin):
             .annotate(
                 _yes=Count("votes", filter=Q(votes__vote="yes")),
                 _no=Count("votes", filter=Q(votes__vote="no")),
+                # Blind review: tallies show only where this user has voted.
+                _my_vote=Exists(PitchVote.objects.filter(target=OuterRef("pk"), user=request.user)),
             )
         )
 
@@ -47,13 +49,22 @@ class PitchTargetAdmin(OrgScopedAdmin):
     def submitter(self, obj):
         return obj.pitch.submitted_by
 
-    @admin.display(description="Yes", ordering="_yes")
-    def yes_votes(self, obj):
-        return obj._yes
+    @staticmethod
+    def _blind(obj) -> bool:
+        return not services.votes_visible(obj, None, has_voted=obj._my_vote)
 
-    @admin.display(description="No", ordering="_no")
+    @admin.display(description="Yes")
+    def yes_votes(self, obj):
+        return "—" if self._blind(obj) else obj._yes
+
+    @admin.display(description="No")
     def no_votes(self, obj):
-        return obj._no
+        return "—" if self._blind(obj) else obj._no
+
+    def get_inlines(self, request, obj):
+        # Others' votes are revealed in the planner only after you vote; the
+        # raw vote inline is for superusers fixing data.
+        return [PitchVoteInline] if request.user.is_superuser else []
 
     def _run(self, request, fn, label):
         try:
@@ -75,21 +86,25 @@ class PitchTargetAdmin(OrgScopedAdmin):
     def waitlist(self, request, queryset):
         self._run(request, lambda: services.queue_decision(queryset, Status.WAITLISTED, request.user), "Waitlisted")
 
-    @admin.action(description="Inform: finalize queued decisions (creates sessions for accepts)")
+    @admin.action(description="Finalize queued decisions (org admins only; creates sessions for accepts)")
     def inform_selected(self, request, queryset):
-        self._run(request, lambda: services.inform(queryset), "Informed")
+        orgs = {t.event.organization for t in queryset.select_related("event__organization")}
+        if not all(has_role(request.user, org, Membership.Role.ADMIN) for org in orgs):
+            self.message_user(request, "Only organization admins can finalize decisions.", messages.ERROR)
+            return
+        self._run(request, lambda: services.inform(queryset), "Finalized")
 
     @admin.action(description="Accept now (create session)")
     def accept_now(self, request, queryset):
         self._run(request, lambda: len([services.accept(t, request.user) for t in queryset]), "Sessions created")
 
-    @admin.action(description="Merge selected into the first selected pitch")
-    def merge_into_first(self, request, queryset):
+    @admin.action(description="Combo selected into the first selected pitch")
+    def combo_into_first(self, request, queryset):
         targets = list(queryset.order_by("pk"))
         if len(targets) < 2:
             self.message_user(request, "Select at least two pitches.", messages.WARNING)
             return
-        self._run(request, lambda: services.merge(targets[0], targets[1:], request.user), "Merged")
+        self._run(request, lambda: services.combo(targets[0], targets[1:], request.user), "Combo'd")
 
 
 class PitchSpeakerInline(admin.TabularInline):

@@ -314,8 +314,17 @@ class PitchTargetSerializer(OrgModelSerializer):
             "pitch", "event", "status", "decided_at", "informed_at", "confirmed_at", "merged_into", "session",
         ]  # fmt: skip
 
-    def get_votes(self, obj) -> list[dict]:
-        return [{"user": str(v.user), "vote": v.vote, "comment": v.comment} for v in obj.votes.all()]
+    def get_votes(self, obj) -> list[dict] | None:
+        """Blind review: null until the requesting user has voted (or a decision exists)."""
+        from apps.pitches.services import votes_visible
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        votes = list(obj.votes.all())
+        has_voted = any(v.user_id == getattr(user, "pk", None) for v in votes)
+        if not votes_visible(obj, user, has_voted=has_voted):
+            return None
+        return [{"user": str(v.user), "vote": v.vote, "comment": v.comment} for v in votes]
 
 
 class MyPitchSerializer(serializers.ModelSerializer):

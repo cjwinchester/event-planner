@@ -1,0 +1,72 @@
+<div class="panel" id="pitch-panel" data-id="{{ target.pk }}">
+  <div class="panel-kicker">
+    <span class="badge status-{{ target.status }}">{{ target.get_status_display }}</span>
+    {% if pitch.source == "staff" %}· entered by staff{% endif %} · submitted {{ pitch.submitted_at|date:"M j, Y" }}
+  </div>
+  <h2 class="panel-title">{{ pitch.title }}</h2>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  {% for e in errors %}<p class="panel-error">{{ e }}</p>{% endfor %}
+
+  <p class="text-sm"><strong>{{ pitch.submitted_by }}</strong>{% if pitch.submitted_by.affiliation %}, {{ pitch.submitted_by.affiliation }}{% endif %}
+    {% if pitch.format %}· {{ pitch.format }}{% endif %}{% if pitch.skill_level %} · {{ pitch.skill_level }}{% endif %}
+    {% if pitch.willing_to_organize %}· <em>will organize</em>{% endif %}</p>
+  <div class="pitch-description">{{ pitch.description|linebreaks }}</div>
+
+  {% with speakers=pitch.pitch_speakers.all %}{% if speakers|length > 1 %}
+    <h3 class="panel-section">Proposed speakers</h3>
+    <ul class="panel-speakers">{% for ps in speakers %}<li>{{ ps.speaker }}{% if ps.speaker.affiliation %}, <span class="text-gray-500">{{ ps.speaker.affiliation }}</span>{% endif %}</li>{% endfor %}</ul>
+  {% endif %}{% endwith %}
+  {% if pitch.speaker_suggestions %}<h3 class="panel-section">Speaker ideas</h3><p class="text-sm">{{ pitch.speaker_suggestions|linebreaksbr }}</p>{% endif %}
+  {% if answers %}
+    <h3 class="panel-section">Answers</h3>
+    <dl class="answers">{% for q, a in answers %}<dt>{{ q }}</dt><dd>{{ a }}</dd>{% endfor %}</dl>
+  {% endif %}
+
+  <h3 class="panel-section">Votes</h3>
+  {% if row.visible %}
+    {% with tally=row.tally %}<p class="text-sm"><b class="text-green-700">{{ tally.yes }} yes</b> · <b class="text-amber-700">{{ tally.maybe }} maybe</b> · <b class="text-red-700">{{ tally.no }} no</b></p>{% endwith %}
+    <ul class="vote-list">
+      {% for v in row.votes %}<li><span class="voter {{ v.vote }}">{{ v.get_vote_display }}</span> {{ v.user.get_full_name|default:v.user.email }}{% if v.comment %}: <em>{{ v.comment }}</em>{% endif %}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-sm text-gray-500">Votes are hidden until you vote on this pitch.</p>
+  {% endif %}
+  {% if can_edit %}
+    <form hx-post="{% url 'planner:pitch-vote' target.pk %}" hx-target="#side-panel-body" class="mt-2">
+      <input type="hidden" name="from" value="panel">
+      <div class="flex gap-2">
+        {% for value, label in votes %}
+          <label class="vote-choice"><input type="radio" name="vote" value="{{ value }}" {% if row.my_vote.vote == value %}checked{% endif %} required> {{ label }}</label>
+        {% endfor %}
+      </div>
+      <textarea name="comment" rows="2" placeholder="Comment (optional, visible to colleagues after they vote)">{{ row.my_vote.comment }}</textarea>
+      <button class="btn mt-1">Save vote</button>
+    </form>
+  {% endif %}
+
+  <h3 class="panel-section">Review</h3>
+  <form hx-post="{% url 'planner:pitch-panel' target.pk %}" hx-target="#side-panel-body">
+    <label class="field"><span>Assigned to</span>
+      <select name="assigned_to" {% if not can_edit %}disabled{% endif %}>
+        <option value="">— nobody —</option>
+        {% for u in staff_members %}<option value="{{ u.pk }}" {% if target.assigned_to_id == u.pk %}selected{% endif %}>{{ u.get_full_name|default:u.email }}</option>{% endfor %}
+      </select></label>
+    <div class="field"><span>Suggested tracks</span>
+      {% for t in tracks %}<label class="mr-3 inline-block text-sm"><input type="checkbox" name="tracks" value="{{ t.pk }}" {% if t.pk in selected_tracks %}checked{% endif %} {% if not can_edit %}disabled{% endif %}> {{ t.name }}</label>{% empty %}<span class="text-sm text-gray-500">No tracks set up for this event.</span>{% endfor %}
+    </div>
+    <label class="field"><span>Staff notes</span><textarea name="staff_notes" rows="3" {% if not can_edit %}disabled{% endif %}>{{ target.staff_notes }}</textarea></label>
+    {% if can_edit %}<button class="btn">Save</button>{% endif %}
+  </form>
+  {% if target.session %}
+    <p class="mt-3 text-sm">Accepted → session #{{ target.session.public_id }} in the <a class="text-blue-700 hover:underline" href="{% url 'planner:grid' target.event.organization.slug target.event.slug %}">grid's unscheduled pool</a>.</p>
+  {% endif %}
+
+  <h3 class="panel-section">History with {{ target.event.organization.name }}</h3>
+  {% if history.sessions %}
+    <ul class="panel-speakers">{% for ss in history.sessions %}<li><span>{{ ss.speaker }}: {{ ss.session.title }} <span class="text-gray-500">({{ ss.session.event.name }})</span></span></li>{% endfor %}</ul>
+  {% else %}<p class="text-sm text-gray-500">No earlier sessions.</p>{% endif %}
+  {% if history.other_pitches %}
+    <p class="mt-2 text-sm font-medium">Other pitches from {{ pitch.submitted_by }}</p>
+    <ul class="panel-speakers">{% for t in history.other_pitches %}<li><span>{{ t.pitch.title }} <span class="text-gray-500">({{ t.event.name }})</span></span><span class="badge status-{{ t.status }}">{{ t.get_status_display }}</span></li>{% endfor %}</ul>
+  {% endif %}
+</div>

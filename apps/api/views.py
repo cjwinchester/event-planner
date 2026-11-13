@@ -20,7 +20,7 @@ from apps.events.models import Concession, Event, EventRoom, EventSeries, VenueR
 from apps.organizations.models import Organization
 from apps.organizations.permissions import has_role, organization_ids_for
 from apps.pitches import services as pitch_services
-from apps.pitches.models import Pitch, PitchTarget, PitchVote
+from apps.pitches.models import Pitch, PitchTarget
 from apps.program.conflicts import event_conflicts
 from apps.program.copying import copy_sessions
 from apps.program.grid import grid_payload, grid_version
@@ -408,8 +408,11 @@ class PitchTargetViewSet(OrgScopedViewSet):
 
     @action(detail=False, methods=["post"])
     def inform(self, request):
-        """Finalize queued decisions (creates sessions for accepts)."""
-        return Response(pitch_services.inform(self._targets(request.data.get("ids", []))))
+        """Finalize queued decisions (creates sessions for accepts). Org admins only."""
+        targets = self._targets(request.data.get("ids", []))
+        if not all(has_role(request.user, t.event.organization, Role.ADMIN) for t in targets):
+            raise PermissionDenied("Only organization admins can finalize decisions.")
+        return Response(pitch_services.inform(targets))
 
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
@@ -419,10 +422,12 @@ class PitchTargetViewSet(OrgScopedViewSet):
         return Response({"session": session.pk}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
-    def merge(self, request, pk=None):
+    def combo(self, request, pk=None):
+        """Combo other pitches (ids) into this one."""
         primary = self.get_object()
-        n = pitch_services.merge(primary, self._targets(request.data.get("ids", [])), request.user)
-        return Response({"merged": n})
+        self._check_write(primary)
+        n = pitch_services.combo(primary, self._targets(request.data.get("ids", [])), request.user)
+        return Response({"combod": n})
 
     @action(detail=True, methods=["post"])
     def vote(self, request, pk=None):
@@ -431,7 +436,7 @@ class PitchTargetViewSet(OrgScopedViewSet):
             raise PermissionDenied
         body = s.VoteSerializer(data=request.data)
         body.is_valid(raise_exception=True)
-        PitchVote.objects.update_or_create(target=target, user=request.user, defaults=body.validated_data)
+        pitch_services.cast_vote(target, request.user, body.validated_data["vote"], body.validated_data.get("comment"))
         return Response(s.PitchTargetSerializer(target, context={"request": request}).data)
 
 

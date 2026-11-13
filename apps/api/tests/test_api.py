@@ -105,7 +105,8 @@ class TestSpeakerSelfService:
         staff = api(world.staff_user)
         staff.post("/api/v1/pitch-reviews/decide/", {"ids": [target_id], "decision": "accept_queue"}, format="json")
         assert client.get("/api/v1/my-pitches/").json()["results"][0]["targets"][0]["status"] == "submitted"
-        staff.post("/api/v1/pitch-reviews/inform/", {"ids": [target_id]}, format="json")
+        assert staff.post("/api/v1/pitch-reviews/inform/", {"ids": [target_id]}, format="json").status_code == 403
+        api(world.admin_user).post("/api/v1/pitch-reviews/inform/", {"ids": [target_id]}, format="json")
         assert client.get("/api/v1/my-pitches/").json()["results"][0]["targets"][0]["status"] == "accepted"
 
 

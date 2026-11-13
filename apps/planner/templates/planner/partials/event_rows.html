@@ -6,6 +6,7 @@
         <div class="text-sm text-gray-500">{{ e.organization.name }} · {{ e.start_date|date:"M j" }}–{{ e.end_date|date:"M j, Y" }} · {{ e.get_status_display }}</div>
       </div>
       <a class="btn-secondary" href="{% url 'planner:grid' e.organization.slug e.slug %}">Schedule grid</a>
+      <a class="btn-secondary" href="{% url 'planner:pitches' e.organization.slug e.slug %}">Pitches</a>
       <a class="btn-secondary" href="{% url 'admin:events_event_change' e.pk %}">Edit</a>
     </li>
   {% empty %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Pitches · {{ event.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/grid.css' %}"><link rel="stylesheet" href="{% static 'css/pitches.css' %}">{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}{% endblock %}
+{% block main %}
+<div class="planner" id="pitch-review"
+     data-table-url="{% url 'planner:pitches' event.organization.slug event.slug %}">
+  <div class="planner-toolbar">
+    <div id="pitch-counts" class="flex flex-wrap items-center gap-2 text-sm"
+         hx-get="{% url 'planner:pitches' event.organization.slug event.slug %}?partial=counts"
+         hx-trigger="pitches:counts from:body, pitches:refresh from:body">
+      {% include "planner/partials/pitch_counts.html" %}
+    </div>
+    <div class="toolbar-actions">
+      {% if event.pitch_window_opens_at %}
+        <span class="self-center text-xs text-gray-500">Window {{ event.pitch_window_opens_at|date:"M j" }}–{{ event.pitch_window_closes_at|date:"M j" }}{% if event.is_pitch_window_open %} · open{% endif %}</span>
+      {% endif %}
+      {% if can_edit %}
+        <button type="button" class="btn-secondary" data-panel-url="{% url 'planner:pitch-new' event.organization.slug event.slug %}">+ Add pitch for someone</button>
+        <a class="btn" href="{% url 'planner:pitch-finalize' event.organization.slug event.slug %}">Review queued decisions</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form id="pitch-filters" class="pitch-filters"
+        hx-get="{% url 'planner:pitches' event.organization.slug event.slug %}" hx-target="#pitch-table"
+        hx-trigger="change, input changed delay:300ms from:input[name=q]" hx-include="this">
+    <input type="hidden" name="partial" value="table">
+    <input class="input w-64" type="search" name="q" value="{{ filters.q }}" placeholder="Search title, description, pitcher">
+    <select class="input w-auto" name="status">
+      <option value="open" {% if filters.status == "open" %}selected{% endif %}>Open (not final)</option>
+      <option value="" {% if filters.status == "" %}selected{% endif %}>All statuses</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select class="input w-auto" name="track"><option value="">All tracks</option>{% for t in tracks %}<option value="{{ t.slug }}" {% if filters.track == t.slug %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>
+    <select class="input w-auto" name="format"><option value="">All formats</option>{% for f in formats %}<option value="{{ f }}" {% if filters.format == f %}selected{% endif %}>{{ f }}</option>{% endfor %}</select>
+    <select class="input w-auto" name="sort">{% for value, label in sorts.items %}<option value="{{ value }}" {% if filters.sort == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <label class="text-sm"><input type="checkbox" name="unvoted" value="1" {% if filters.unvoted %}checked{% endif %}> Not voted by me</label>
+    <label class="text-sm"><input type="checkbox" name="mine" value="1" {% if filters.mine %}checked{% endif %}> Assigned to me</label>
+    <span class="ml-auto text-xs text-gray-500">Keys: <kbd>j</kbd>/<kbd>k</kbd> move · <kbd>y</kbd>/<kbd>m</kbd>/<kbd>n</kbd> vote · <kbd>x</kbd> select · <kbd>Enter</kbd> open</span>
+  </form>
+
+  <div class="planner-body">
+    <section class="pitch-scroll">
+      <div id="pitch-table">{% include "planner/partials/pitch_table.html" %}</div>
+    </section>
+    <aside id="side-panel" class="side-panel" hidden>
+      <button type="button" class="side-close" data-action="close-panel" aria-label="Close panel">×</button>
+      <div id="side-panel-body"></div>
+    </aside>
+  </div>
+</div>
+<script type="module" src="{% static 'js/pitches.js' %}"></script>
+{% endblock %}

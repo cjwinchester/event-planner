@@ -1,0 +1,29 @@
+<div class="panel">
+  <h2 class="panel-title">Add a pitch for someone</h2>
+  <p class="text-sm text-gray-500">For staff ideas and the speaker-ideas pool. Ignores the pitch window. Doesn't give your organization access to the speaker's private details unless they already shared them.</p>
+  {% for e in errors %}<p class="panel-error">{{ e }}</p>{% endfor %}
+  <form hx-post="{% url 'planner:pitch-new' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+    <h3 class="panel-section">Speaker</h3>
+    <input type="search" name="q" placeholder="Find an existing speaker: type a name"
+           hx-get="{% url 'planner:pitch-speaker-search' event.organization.slug event.slug %}" hx-trigger="input changed delay:250ms" hx-target="#speaker-pick">
+    <div id="speaker-pick"></div>
+    <p class="mt-2 text-xs text-gray-500">…or a new person (matched by email if they already exist):</p>
+    <div class="grid grid-cols-2 gap-2">
+      <label class="field"><span>First name</span><input name="first_name" value="{{ data.first_name }}"></label>
+      <label class="field"><span>Last name</span><input name="last_name" value="{{ data.last_name }}"></label>
+      <label class="field col-span-2"><span>Email</span><input name="email" type="email" value="{{ data.email }}"></label>
+      <label class="field col-span-2"><span>Affiliation</span><input name="affiliation" value="{{ data.affiliation }}"></label>
+    </div>
+    <h3 class="panel-section">Pitch</h3>
+    <label class="field"><span>Title</span><input name="title" value="{{ data.title }}" required></label>
+    <label class="field"><span>Description</span><textarea name="description" rows="5" required>{{ data.description }}</textarea></label>
+    <div class="grid grid-cols-2 gap-2">
+      <label class="field"><span>Format</span><select name="format"><option value=""></option>{% for f in formats %}<option {% if data.format == f.name %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Skill level</span><select name="skill_level"><option value=""></option>{% for s in skill_levels %}<option {% if data.skill_level == s.name %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="field"><span>Suggested tracks</span>{% for t in tracks %}<label class="mr-3 inline-block text-sm"><input type="checkbox" name="tracks" value="{{ t.pk }}"> {{ t.name }}</label>{% endfor %}</div>
+    <label class="field"><span>Other speaker ideas</span><textarea name="speaker_suggestions" rows="2">{{ data.speaker_suggestions }}</textarea></label>
+    <label class="field"><span>Staff notes</span><textarea name="staff_notes" rows="2">{{ data.staff_notes }}</textarea></label>
+    <button class="btn">Add pitch</button>
+  </form>
+</div>

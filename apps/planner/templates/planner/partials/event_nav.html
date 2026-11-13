@@ -1,0 +1,8 @@
+<span class="text-gray-400">/</span>
+<span class="font-medium">{{ event.name }}</span>
+<nav class="ml-4 flex gap-1 text-sm" aria-label="Event sections">
+  {% url 'planner:grid' event.organization.slug event.slug as grid_url %}
+  {% url 'planner:pitches' event.organization.slug event.slug as pitches_url %}
+  <a href="{{ grid_url }}" class="rounded px-2 py-1 {% if request.path == grid_url %}bg-blue-100 text-blue-800{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Schedule grid</a>
+  <a href="{{ pitches_url }}" class="rounded px-2 py-1 {% if request.path == pitches_url %}bg-blue-100 text-blue-800{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Pitches</a>
+</nav>

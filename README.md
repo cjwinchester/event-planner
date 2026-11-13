@@ -15,8 +15,9 @@ Guidebook...).
 > Django admin, REST API, publishing/import pipeline, connector framework and
 > reports. Phase 2 has started with the staff planner at `/plan/`: a
 > drag-and-drop schedule grid with an unscheduled pool, conflict previews,
-> undo, quick-edit and time-slot panels. Pitch dashboard, portals and maps are
-> next. See [docs/continuing.md](docs/continuing.md).
+> undo, quick-edit and time-slot panels, plus a pitch review dashboard with blind
+> voting, bulk decisions and an admin-only finalize step. Portals and maps
+> are next. See [docs/continuing.md](docs/continuing.md).
 
 ## Quick start
 

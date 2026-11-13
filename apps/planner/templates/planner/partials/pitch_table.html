@@ -1,0 +1,35 @@
+<form id="bulk-form" hx-post="{% url 'planner:pitch-bulk' event.organization.slug event.slug %}" hx-target="#pitch-table" hx-include="#pitch-filters">
+  {% if message %}<p class="panel-ok m-2">{{ message }}</p>{% endif %}
+  {% if error %}<p class="panel-error m-2">{{ error }}</p>{% endif %}
+  {% if can_edit %}
+    <div class="bulk-bar">
+      <span id="bulk-count" class="text-sm text-gray-600">0 selected</span>
+      <select class="input w-auto" name="action">
+        <option value="">Bulk action…</option>
+        {% for value, label in bulk_actions.items %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+      <select class="input w-auto" name="assignee" data-for-action="assign">
+        <option value="">— nobody —</option>
+        {% for u in staff_members %}<option value="{{ u.pk }}">{{ u.get_full_name|default:u.email }}</option>{% endfor %}
+      </select>
+      <select class="input w-auto" name="primary" data-for-action="combo">
+        <option value="">Combo into which pitch?</option>
+        {% for row in rows %}<option value="{{ row.target.pk }}">{{ row.target.pitch.title|truncatechars:60 }}</option>{% endfor %}
+      </select>
+      <button class="btn-secondary">Apply</button>
+    </div>
+  {% endif %}
+  <table class="pitch-table">
+    <thead>
+      <tr>
+        <th class="w-8">{% if can_edit %}<input type="checkbox" data-select-all aria-label="Select all">{% endif %}</th>
+        <th>Pitch</th><th>Tracks</th><th>Assigned</th><th>Status</th><th>Votes</th><th>Your vote</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}{% include "planner/partials/pitch_row.html" %}
+      {% empty %}<tr><td colspan="7" class="p-6 text-sm text-gray-500">No pitches match.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</form>
+<div hidden hx-swap-oob="innerHTML:#pitch-counts">{% include "planner/partials/pitch_counts.html" %}</div>

@@ -1,0 +1,33 @@
+{% with t=row.target p=row.target.pitch %}
+<tr id="pitch-row-{{ t.pk }}" class="pitch-row" tabindex="0" data-id="{{ t.pk }}" data-panel-url="{% url 'planner:pitch-panel' t.pk %}">
+  <td>{% if can_edit %}<input type="checkbox" name="ids" value="{{ t.pk }}" aria-label="Select {{ p.title }}">{% endif %}</td>
+  <td class="pitch-main">
+    <div class="pitch-title">{{ p.title }}</div>
+    <div class="pitch-meta">
+      {{ p.submitted_by }}{% if p.submitted_by.affiliation %}, {{ p.submitted_by.affiliation }}{% endif %}
+      {% if p.format %}· {{ p.format }}{% endif %}{% if p.skill_level %} · {{ p.skill_level }}{% endif %}
+      {% if p.source == "staff" %}<span class="badge bg-gray-100 text-gray-700">staff-entered</span>{% endif %}
+      {% if t.merged_into %}<span class="badge bg-gray-100 text-gray-700">combo'd into “{{ t.merged_into.pitch.title|truncatechars:40 }}”</span>{% endif %}
+    </div>
+  </td>
+  <td class="text-xs">{% for tr in t.suggested_tracks.all %}<span class="badge bg-blue-50 text-blue-800">{{ tr.name }}</span> {% endfor %}</td>
+  <td class="text-xs">{% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.email }}{% else %}—{% endif %}</td>
+  <td><span class="badge status-{{ t.status }}">{{ t.get_status_display }}</span>{% if t.session %}<div class="text-xs"><a class="text-blue-700" href="{% url 'planner:grid' t.event.organization.slug t.event.slug %}">in session pool</a></div>{% endif %}</td>
+  <td class="votes">
+    {% if row.visible %}
+      {% with tally=row.tally %}<span class="tally"><b class="yes">{{ tally.yes }}</b>/<b class="maybe">{{ tally.maybe }}</b>/<b class="no">{{ tally.no }}</b></span>{% endwith %}
+      <span class="voters">{% for initials, v in row.voters %}<span class="voter {{ v }}" title="{{ v }}">{{ initials }}</span>{% endfor %}</span>
+    {% else %}
+      <span class="text-xs text-gray-400" title="Votes are hidden until you vote">vote to see</span>
+    {% endif %}
+  </td>
+  <td class="whitespace-nowrap">
+    {% if can_edit %}
+      {% for value, label in votes %}
+        <button type="button" class="vote-btn {{ value }}{% if row.my_vote.vote == value %} chosen{% endif %}" data-vote="{{ value }}"
+                hx-post="{% url 'planner:pitch-vote' t.pk %}" hx-vals='{"vote": "{{ value }}"}' hx-target="#pitch-row-{{ t.pk }}" hx-swap="outerHTML">{{ label }}</button>
+      {% endfor %}
+    {% else %}{{ row.my_vote.get_vote_display|default:"" }}{% endif %}
+  </td>
+</tr>
+{% endwith %}

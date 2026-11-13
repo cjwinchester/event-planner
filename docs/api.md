@@ -34,7 +34,7 @@ conflicts) runs on every write.
 | `speakers/me/engagements/` | Your past and upcoming sessions |
 | `speakers/me/grants/` | GET / POST `{organization}`; DELETE `speakers/me/grants/{org_id}/` |
 | `my-pitches/` | Speaker: POST a pitch to one or more events `{title, description, events, co_speakers?, answers?}`; GET your pitches (decisions appear only once staff inform) |
-| `pitch-reviews/` | Staff review (`?event=&status=`); actions: `decide/` `{ids, decision}`, `inform/` `{ids}`, `{id}/accept/`, `{id}/merge/` `{ids}`, `{id}/vote/` `{vote, comment}` |
+| `pitch-reviews/` | Staff review (`?event=&status=`). Blind: `votes` is null until you've voted on that pitch (or it has a decision). `inform/` (finalize) is org-admin only. Actions: `decide/` `{ids, decision}`, `inform/` `{ids}`, `{id}/accept/`, `{id}/combo/` `{ids}`, `{id}/vote/` `{vote, comment}` |
 | `companies/` | Shared company directory |
 | `sponsorships/`, `exhibitors/` | Org-scoped commercial records |
 | `publish-runs/` | Publish history with file URLs |

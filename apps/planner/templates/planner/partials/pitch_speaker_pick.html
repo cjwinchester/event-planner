@@ -1,0 +1,7 @@
+<ul class="speaker-results">
+  {% for sp in results %}
+    <li><label class="flex-1"><input type="radio" name="speaker" value="{{ sp.pk }}"> {{ sp }}{% if sp.affiliation %}, <span class="text-gray-500">{{ sp.affiliation }}</span>{% endif %}</label></li>
+  {% empty %}
+    {% if q %}<li class="text-sm text-gray-500">No match. Fill in a new person below.</li>{% endif %}
+  {% endfor %}
+</ul>
