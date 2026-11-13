@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ event.name }} schedule</title>
+<style>
+  @page { size: letter; margin: 0.6in 0.6in 0.7in; @bottom-center { content: "{{ event.name }} · page " counter(page); font-size: 8pt; color: #555; } }
+  body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #111; line-height: 1.35; }
+  h1 { font-size: 18pt; margin: 0 0 2pt; }
+  .meta { color: #444; margin-bottom: 14pt; }
+  h2 { font-size: 12pt; border-bottom: 1.5pt solid #111; padding-bottom: 2pt; margin: 16pt 0 6pt; page-break-after: avoid; }
+  .session { page-break-inside: avoid; margin: 0 0 7pt; display: grid; grid-template-columns: 1.05in 1fr; column-gap: 8pt; }
+  .when { font-weight: bold; white-space: nowrap; }
+  .title { font-weight: bold; }
+  .where, .who { color: #333; }
+  .desc { margin-top: 2pt; color: #222; }
+  .desc p { margin: 0 0 2pt; }
+</style>
+</head>
+<body>
+  <h1>{{ event.name }}</h1>
+  <div class="meta">{{ event.start_date }} – {{ event.end_date }} · all times {{ event.timezone }}</div>
+  {% for day in days %}
+    <h2>{{ day.label }}</h2>
+    {% for s in day.sessions %}
+      <div class="session">
+        <div class="when">{{ s.when }}</div>
+        <div>
+          <div class="title">{{ s.title }}</div>
+          {% if s.room %}<div class="where">{{ s.room }}</div>{% endif %}
+          {% if s.speakers %}<div class="who">{{ s.speakers }}</div>{% endif %}
+          {% if include_descriptions and s.description %}<div class="desc">{{ s.description|safe }}</div>{% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endfor %}
+</body>
+</html>

@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cjwinchester/event-planner/schemas/event-bundle/v1.json",
+  "title": "Event Bundle v1",
+  "description": "The one interchange format for an event's program: what the API serves, what publishing writes, and the ONLY format the importer accepts. Legacy data (spreadsheets, other vendors) is transformed into this upstream. Times are UTC ISO-8601 with a trailing Z; render them in event.timezone. IDs are stable across republishes. Optional 'internal' fields (marked in descriptions) appear only in staff exports and are accepted on import.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "organization", "event", "rooms", "tracks", "sessions", "speakers"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "generated_at": {"$ref": "#/$defs/utc_datetime"},
+    "audience": {"enum": ["public", "internal"], "description": "public = ready sessions + public fields only."},
+    "organization": {
+      "type": "object",
+      "required": ["slug", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "slug": {"$ref": "#/$defs/slug"},
+        "name": {"type": "string"},
+        "website": {"type": "string"}
+      }
+    },
+    "event": {"$ref": "#/$defs/event"},
+    "rooms": {"type": "array", "items": {"$ref": "#/$defs/room"}},
+    "tracks": {"type": "array", "items": {"$ref": "#/$defs/track"}},
+    "sessions": {"type": "array", "items": {"$ref": "#/$defs/session"}},
+    "speakers": {"type": "array", "items": {"$ref": "#/$defs/speaker"}},
+    "logistics": {"type": "array", "items": {"$ref": "#/$defs/logistics"}},
+    "sponsors": {"type": "array", "items": {"$ref": "#/$defs/sponsor"}},
+    "exhibitors": {"type": "array", "items": {"$ref": "#/$defs/exhibitor"}},
+    "feeds": {
+      "type": "object",
+      "description": "Published URLs by format (json, csv, txt, ics, pdf, schedule_ui, ui). Added by the publisher.",
+      "additionalProperties": {"type": "string"}
+    }
+  },
+  "$defs": {
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$"},
+    "utc_datetime": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"},
+    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "link": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"type": "string"},
+        "label": {"type": "string"},
+        "url": {"type": "string"}
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["slug", "name", "start_date", "end_date", "timezone"],
+      "additionalProperties": false,
+      "properties": {
+        "slug": {"$ref": "#/$defs/slug"},
+        "name": {"type": "string"},
+        "short_name": {"type": "string"},
+        "kind": {"enum": ["conference", "workshop", "webinar", "meetup", "other"]},
+        "format": {"enum": ["in_person", "virtual", "hybrid"]},
+        "status": {"type": "string"},
+        "description": {"type": "string"},
+        "intro_text": {"type": "string"},
+        "start_date": {"$ref": "#/$defs/date"},
+        "end_date": {"$ref": "#/$defs/date"},
+        "timezone": {"type": "string", "description": "IANA timezone name."},
+        "series": {
+          "type": ["object", "null"],
+          "required": ["slug", "name"],
+          "additionalProperties": false,
+          "properties": {"slug": {"$ref": "#/$defs/slug"}, "name": {"type": "string"}}
+        },
+        "registration_url": {"type": "string"},
+        "details_url": {"type": "string"},
+        "banner_image": {"type": "string"},
+        "additional_links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+        "venues": {"type": "array", "items": {"$ref": "#/$defs/venue"}}
+      }
+    },
+    "venue": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"},
+        "role": {"enum": ["primary", "overflow", "virtual", "hotel"]},
+        "name": {"type": "string"},
+        "kind": {"enum": ["physical", "virtual"]},
+        "address": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "address1": {"type": "string"},
+            "address2": {"type": "string"},
+            "city": {"type": "string"},
+            "region": {"type": "string"},
+            "postal_code": {"type": "string"},
+            "country": {"type": "string"}
+          }
+        },
+        "location": {
+          "type": ["object", "null"],
+          "required": ["lat", "lon"],
+          "additionalProperties": false,
+          "properties": {"lat": {"type": "number"}, "lon": {"type": "number"}}
+        },
+        "timezone": {"type": "string"},
+        "website": {"type": "string"},
+        "maps_url": {"type": "string"},
+        "public_access_notes": {"type": "string"},
+        "floorplans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "image_url"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {"type": "string"},
+              "label": {"type": "string"},
+              "level": {"type": "integer"},
+              "image_url": {"type": "string"},
+              "width": {"type": ["integer", "null"]},
+              "height": {"type": ["integer", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "room": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "description": "Stable within the event."},
+        "name": {"type": "string"},
+        "venue_id": {"type": ["string", "null"]},
+        "floor": {"type": "string"},
+        "floorplan_id": {"type": ["string", "null"]},
+        "map": {
+          "type": ["object", "null"],
+          "description": "Fractional (0-1) position on the floorplan image, from the top-left.",
+          "required": ["x", "y"],
+          "additionalProperties": false,
+          "properties": {"x": {"type": "number"}, "y": {"type": "number"}}
+        },
+        "capacity": {"type": ["integer", "null"]},
+        "setup": {"type": "string"},
+        "computer_os": {"enum": ["", "byo", "pc", "mac"]},
+        "is_recorded": {"type": "boolean"},
+        "sort_order": {"type": "integer"}
+      }
+    },
+    "track": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "color": {"type": "string"}
+      }
+    },
+    "session_speaker": {
+      "type": "object",
+      "required": ["speaker_id"],
+      "additionalProperties": false,
+      "properties": {
+        "speaker_id": {"type": "string"},
+        "role": {"enum": ["speaker", "moderator", "coach", "host"]},
+        "affiliation": {"type": "string", "description": "As printed for this session (overrides profile)."}
+      }
+    },
+    "session": {
+      "type": "object",
+      "required": ["id", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "integer", "description": "Stable public session number."},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string", "description": "Sanitized HTML."},
+        "type": {"type": "string"},
+        "skill_level": {"type": "string"},
+        "tracks": {"type": "array", "items": {"$ref": "#/$defs/slug"}},
+        "room_id": {"type": ["string", "null"]},
+        "starts_at": {"oneOf": [{"$ref": "#/$defs/utc_datetime"}, {"type": "null"}]},
+        "ends_at": {"oneOf": [{"$ref": "#/$defs/utc_datetime"}, {"type": "null"}]},
+        "duration_minutes": {"type": ["integer", "null"]},
+        "is_plenary": {"type": "boolean"},
+        "is_recorded": {"type": "boolean"},
+        "requires_preregistration": {"type": "boolean"},
+        "capacity": {"type": ["integer", "null"]},
+        "cost": {"type": "string"},
+        "live_url": {"type": "string"},
+        "recording_url": {"type": "string"},
+        "canceled": {"type": "boolean"},
+        "speakers": {"type": "array", "items": {"$ref": "#/$defs/session_speaker"}},
+        "sponsor_ids": {"type": "array", "items": {"type": "string"}},
+        "assets": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+        "updated_at": {"$ref": "#/$defs/utc_datetime"},
+        "status": {"type": "string", "description": "internal"},
+        "title_status": {"enum": ["pending", "needs_edit", "edited"], "description": "internal"},
+        "description_status": {"enum": ["pending", "needs_edit", "edited"], "description": "internal"},
+        "is_stock": {"type": "boolean", "description": "internal"},
+        "source": {"type": "string", "description": "internal"}
+      }
+    },
+    "speaker": {
+      "type": "object",
+      "required": ["id", "first_name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "description": "Stable public speaker ID."},
+        "first_name": {"type": "string"},
+        "last_name": {"type": "string"},
+        "pronouns": {"type": "string"},
+        "affiliation": {"type": "string"},
+        "job_title": {"type": "string"},
+        "bio": {"type": "string", "description": "Sanitized HTML."},
+        "headshot_url": {"type": "string"},
+        "featured": {"type": "boolean"},
+        "links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+        "session_ids": {"type": "array", "items": {"type": "integer"}},
+        "email": {"type": "string", "description": "internal; only with the speaker's share grant"}
+      }
+    },
+    "logistics": {
+      "type": "object",
+      "required": ["id", "title", "starts_at", "ends_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "integer"},
+        "category": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "room_id": {"type": ["string", "null"]},
+        "location": {"type": "string", "description": "Room name or free-text place."},
+        "starts_at": {"$ref": "#/$defs/utc_datetime"},
+        "ends_at": {"$ref": "#/$defs/utc_datetime"}
+      }
+    },
+    "sponsor": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "url": {"type": "string"},
+        "logo_url": {"type": "string"},
+        "level": {"type": "string"},
+        "level_rank": {"type": ["integer", "null"]},
+        "scope": {"enum": ["event", "track", "session", "special_event"]},
+        "track_id": {"type": ["string", "null"]},
+        "session_id": {"type": ["integer", "null"]}
+      }
+    },
+    "exhibitor": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "url": {"type": "string"},
+        "logo_url": {"type": "string"},
+        "booth": {"type": "string"},
+        "package": {"type": "string"}
+      }
+    }
+  }
+}

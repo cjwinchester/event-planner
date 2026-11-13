@@ -1,0 +1,629 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-11-13T00:00:00Z",
+  "audience": "public",
+  "organization": {
+    "slug": "sample-org",
+    "name": "Sample Org"
+  },
+  "event": {
+    "slug": "sample-conf-2026",
+    "name": "Sample Conference 2026",
+    "short_name": "SAMPLE26",
+    "kind": "conference",
+    "format": "in_person",
+    "start_date": "2026-03-05",
+    "end_date": "2026-03-08",
+    "timezone": "America/New_York",
+    "series": {
+      "slug": "sample-conf",
+      "name": "Sample Conference"
+    },
+    "venues": [
+      {
+        "id": "v-hotel",
+        "role": "primary",
+        "name": "Example Downtown Hotel",
+        "kind": "physical",
+        "address": {
+          "address1": "1 Example St",
+          "city": "Indianapolis",
+          "region": "IN",
+          "postal_code": "46204",
+          "country": "US"
+        },
+        "location": {
+          "lat": 39.7655,
+          "lon": -86.164
+        }
+      }
+    ]
+  },
+  "rooms": [
+    {
+      "id": "r-white-river-d",
+      "name": "White River D",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 0
+    },
+    {
+      "id": "r-white-river-e",
+      "name": "White River E",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 1
+    },
+    {
+      "id": "r-204",
+      "name": "204",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 2
+    },
+    {
+      "id": "r-205",
+      "name": "205",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 3
+    },
+    {
+      "id": "r-202",
+      "name": "202",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 4
+    },
+    {
+      "id": "r-102",
+      "name": "102",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 5
+    },
+    {
+      "id": "r-203",
+      "name": "203",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 6
+    },
+    {
+      "id": "r-white-river-i",
+      "name": "White River I",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 7
+    },
+    {
+      "id": "r-white-river-b",
+      "name": "White River B",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 8
+    },
+    {
+      "id": "r-white-river-g",
+      "name": "White River G",
+      "venue_id": "v-hotel",
+      "floor": "",
+      "sort_order": 9
+    }
+  ],
+  "tracks": [
+    {
+      "id": "ai",
+      "name": "AI"
+    },
+    {
+      "id": "beat-reporting",
+      "name": "Beat reporting"
+    },
+    {
+      "id": "data-analysis",
+      "name": "Data analysis"
+    },
+    {
+      "id": "research",
+      "name": "Research"
+    },
+    {
+      "id": "story-ideas",
+      "name": "Story ideas"
+    },
+    {
+      "id": "tools-tech",
+      "name": "Tools & Tech"
+    }
+  ],
+  "sessions": [
+    {
+      "id": 1009,
+      "title": "From delving into data to door knocking: Finding people behind the numbers and getting them to speak",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "Beginner",
+      "tracks": [
+        "story-ideas"
+      ],
+      "room_id": "r-white-river-d",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0001",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1158,
+      "title": "Reporting on maternal and infant health in turbulent times",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "Beginner",
+      "tracks": [
+        "beat-reporting",
+        "story-ideas"
+      ],
+      "room_id": "r-white-river-e",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0002",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1240,
+      "title": "R 2: Data analysis and plotting",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Intermediate",
+      "tracks": [
+        "tools-tech"
+      ],
+      "room_id": "r-204",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0003",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1255,
+      "title": "Cleaning data with OpenRefine",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Beginner",
+      "tracks": [
+        "tools-tech",
+        "data-analysis"
+      ],
+      "room_id": "r-205",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0004",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1257,
+      "title": "Google Sheets 2: Formulas & sorting",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Beginner",
+      "tracks": [
+        "data-analysis"
+      ],
+      "room_id": "r-202",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0005",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1294,
+      "title": "Finding the story: Education data",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Beginner",
+      "tracks": [
+        "beat-reporting"
+      ],
+      "room_id": "r-102",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0006",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1307,
+      "title": "Excel 2: Formulas & sorting (PC lab)",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Beginner",
+      "tracks": [
+        "data-analysis"
+      ],
+      "room_id": "r-203",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0007",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1326,
+      "title": "Accessing records to report on immigration enforcement actions",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "Intermediate",
+      "tracks": [
+        "data-analysis",
+        "story-ideas"
+      ],
+      "room_id": "r-white-river-i",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0008",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1334,
+      "title": "The SLAPP Back Initiative: Building a first-of-its-kind database",
+      "description": "<p>Example description.</p>",
+      "type": "Demo",
+      "skill_level": "Beginner",
+      "tracks": [
+        "research"
+      ],
+      "room_id": "r-white-river-b",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0009",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1368,
+      "title": "Pitching, reporting and planning the investigation",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "",
+      "tracks": [],
+      "room_id": "r-white-river-g",
+      "starts_at": "2026-03-05T15:15:00Z",
+      "ends_at": "2026-03-05T16:15:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0010",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1022,
+      "title": "Using data to find sources",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "Beginner",
+      "tracks": [
+        "story-ideas"
+      ],
+      "room_id": "r-white-river-d",
+      "starts_at": "2026-03-05T16:30:00Z",
+      "ends_at": "2026-03-05T17:30:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0011",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1136,
+      "title": "Coaching ChatGPT to help with coding and data tasks",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Beginner",
+      "tracks": [
+        "ai"
+      ],
+      "room_id": "r-102",
+      "starts_at": "2026-03-05T16:30:00Z",
+      "ends_at": "2026-03-05T17:30:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0012",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1190,
+      "title": "Introducing libfec, a faster FEC filing parser",
+      "description": "<p>Example description.</p>",
+      "type": "Hands-on",
+      "skill_level": "Intermediate",
+      "tracks": [
+        "data-analysis",
+        "tools-tech"
+      ],
+      "room_id": "r-205",
+      "starts_at": "2026-03-05T16:30:00Z",
+      "ends_at": "2026-03-05T17:30:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0013",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    },
+    {
+      "id": 1228,
+      "title": "Investigating the AI data center boom",
+      "description": "<p>Example description.</p>",
+      "type": "Panel",
+      "skill_level": "Beginner",
+      "tracks": [
+        "story-ideas",
+        "research"
+      ],
+      "room_id": "r-white-river-i",
+      "starts_at": "2026-03-05T16:30:00Z",
+      "ends_at": "2026-03-05T17:30:00Z",
+      "speakers": [
+        {
+          "speaker_id": "fake0014",
+          "role": "speaker"
+        }
+      ],
+      "canceled": false
+    }
+  ],
+  "speakers": [
+    {
+      "id": "fake0001",
+      "first_name": "Speaker",
+      "last_name": "Number1",
+      "affiliation": "Public Radio Example",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1009
+      ]
+    },
+    {
+      "id": "fake0002",
+      "first_name": "Speaker",
+      "last_name": "Number2",
+      "affiliation": "State University",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1158
+      ]
+    },
+    {
+      "id": "fake0003",
+      "first_name": "Speaker",
+      "last_name": "Number3",
+      "affiliation": "Data Desk Co-op",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1240
+      ]
+    },
+    {
+      "id": "fake0004",
+      "first_name": "Speaker",
+      "last_name": "Number4",
+      "affiliation": "Freelance",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1255
+      ]
+    },
+    {
+      "id": "fake0005",
+      "first_name": "Speaker",
+      "last_name": "Number5",
+      "affiliation": "Example Daily",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1257
+      ]
+    },
+    {
+      "id": "fake0006",
+      "first_name": "Speaker",
+      "last_name": "Number6",
+      "affiliation": "Public Radio Example",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1294
+      ]
+    },
+    {
+      "id": "fake0007",
+      "first_name": "Speaker",
+      "last_name": "Number7",
+      "affiliation": "State University",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1307
+      ]
+    },
+    {
+      "id": "fake0008",
+      "first_name": "Speaker",
+      "last_name": "Number8",
+      "affiliation": "Data Desk Co-op",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1326
+      ]
+    },
+    {
+      "id": "fake0009",
+      "first_name": "Speaker",
+      "last_name": "Number9",
+      "affiliation": "Freelance",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1334
+      ]
+    },
+    {
+      "id": "fake0010",
+      "first_name": "Speaker",
+      "last_name": "Number10",
+      "affiliation": "Example Daily",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1368
+      ]
+    },
+    {
+      "id": "fake0011",
+      "first_name": "Speaker",
+      "last_name": "Number11",
+      "affiliation": "Public Radio Example",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1022
+      ]
+    },
+    {
+      "id": "fake0012",
+      "first_name": "Speaker",
+      "last_name": "Number12",
+      "affiliation": "State University",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1136
+      ]
+    },
+    {
+      "id": "fake0013",
+      "first_name": "Speaker",
+      "last_name": "Number13",
+      "affiliation": "Data Desk Co-op",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1190
+      ]
+    },
+    {
+      "id": "fake0014",
+      "first_name": "Speaker",
+      "last_name": "Number14",
+      "affiliation": "Freelance",
+      "bio": "<p>Example bio.</p>",
+      "links": [],
+      "session_ids": [
+        1228
+      ]
+    }
+  ],
+  "logistics": [
+    {
+      "id": 1,
+      "category": "Registration",
+      "title": "Registration & check-in",
+      "description": "Pick up your name badge or register on site.",
+      "room_id": null,
+      "location": "Foyer",
+      "starts_at": "2026-03-04T20:00:00Z",
+      "ends_at": "2026-03-04T23:30:00Z"
+    },
+    {
+      "id": 2,
+      "category": "Registration",
+      "title": "Registration & check-in",
+      "description": "Pick up your name badge or register on site.",
+      "room_id": null,
+      "location": "Foyer",
+      "starts_at": "2026-03-05T12:30:00Z",
+      "ends_at": "2026-03-05T22:30:00Z"
+    },
+    {
+      "id": 3,
+      "category": "General",
+      "title": "Recharge room",
+      "description": "Need a spot to decompress, take a load off, get your bearings or recharge your batteries? This is the room for you!",
+      "room_id": null,
+      "location": "208",
+      "starts_at": "2026-03-05T13:00:00Z",
+      "ends_at": "2026-03-06T03:00:00Z"
+    }
+  ],
+  "sponsors": [
+    {
+      "id": "example-foundation",
+      "name": "Example Foundation",
+      "level": "Gold",
+      "level_rank": 1,
+      "scope": "event"
+    }
+  ],
+  "exhibitors": [
+    {
+      "id": "example-tools",
+      "name": "Example Tools Inc.",
+      "booth": "12"
+    }
+  ]
+}

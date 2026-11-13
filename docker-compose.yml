@@ -1,0 +1,32 @@
+# Local development: PostGIS + web + task worker.
+#   docker compose up -d db          # just the database (run Django with uv locally)
+#   docker compose up                # everything
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: event_planner
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    environment: &appenv
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: postgis://postgres:postgres@db:5432/event_planner
+    ports: ["8000:8000"]
+    volumes: [".:/app"]
+    depends_on: [db]
+
+  worker:
+    build: .
+    command: python manage.py db_worker
+    environment: *appenv
+    volumes: [".:/app"]
+    depends_on: [db]
+
+volumes:
+  pgdata:
