@@ -1,0 +1,92 @@
+Scaffolding a Django Event Planning Web Application for Nonprofits
+You are an expert full-stack developer specializing in Django, Python, and modern Web architecture. Your task is to design, scaffold, and implement the initial structure and core modules for a multi-tenant open-source event-planning web application tailored for nonprofits with small staffs that plan events (specifically Journalism Support Organizations / JSOs). Focusing on conferences as the biggest use case but eventually could be extended to all events.
+This prompt serves as the master specification for initializing the codebase. The architecture must be modular, well-documented, and designed so that subsequent AI agents or human developers can seamlessly pick up development where this initial phase leaves off.
+
+0. Prior art
+~/ire-data-dashboard -- an in-progress organization-specific data dashboard, which includes an in-progress `planning` app
+    - pay attention to the membersuite connector and the modular multi-connector architecture
+Aborted previous attempts at various pieces of this workflow:
+    ~/conference-hotel-floorplan-pipeline
+    ~/conference-hotel-floorplan-pipeline
+    ~/conference-planning-dashboard
+    ~/hotel-floorplan-mapper
+~/conference-schedule-ui - our current schedule UI
+    - most recent schedule built with it - examine all the schedule types: https://schedules.ire.org/accessfest-2026/
+    - previous iteration (note additional content) - https://schedules.ire.org/nicar-2026/
+review contents of @data-scripts-old/ - contains copies of the past few SuperGrid google sheets and a hotel spec sheet
+
+1. High-Level Vision & Goals
+Primary Purpose: Un-silo content planning from logistics planning for nonprofit event managers.
+Shared Ecosystem: Enable information sharing (e.g., shared pool of speakers, standardized speaker pitch processes, aggregated venue insights, cross-event reporting) across participating nonprofit organizations. We would also be able to see upcoming events for all organizations, which helps with planning.
+Friction Reduction: Replace manual Google Sheets/App Scripts workflows with robust interactive grid views, scheduling checks, self-service portals (speakers, sponsors, exhibitors), and third-party integrations.
+Future Readiness: Provide REST/GraphQL API endpoints for future native mobile (iOS/Android) apps and LLM/AI-assisted natural language querying.
+
+2. Data Model & Architecture Requirements
+Design Django models (using PostGIS/GeoDjango where applicable for geocoding and mapping) covering the following core entities:
+A. Venues & Meeting Spaces
+Venue: Name, physical address, geocoded spatial coordinates (Point field), contact info, public access notes. Support virtual/online venues and hybrid configurations.
+Floor Plans & Rooms: Floor plan images, square footage, capacity, and spatial coordinate mappings suitable for rendering in Leaflet.js interactive maps.
+B. Events & Series
+Event Series: Groups related recurring events (e.g., annual conference series) to enable multi-year performance and registration pace reporting (see example in ire-data-dashboard).
+Event: Title, description, date range, venue relation, status, public publish flags, and configurable pitch window start/end dates, also links to public registration pages and eventually a tie-in to the registration software vendor. Also some items we want to make sure are org-scoped: a file upload for a PDF of the hotel contract, plus fields for key metrics to track over time: 
+    Food & Beverage (F&B) minimums -- four numbers, in dollars:
+        - Overall F&B, includes service and tax
+        - Overall F&B, without service and tax
+        - Affiliate F&B, with service and tax
+        - Affiliate F&B, without service and tax
+    AV costs - dollars
+    Room rate for attendees - dollars
+    Room pickup requirements, expressed as a total number and a pickup number that's updated over time as attendees book rooms - often this number only exists on a third-party website requiring a login, so maybe come back to this one
+
+C. Tracks, Sessions & Logistics Blocks (see supergrid)
+Track: Category or thematic stream (e.g., "Public Records", "AI") assigned to an event.
+Session: Content blocks tied to an event, assigned room, time block, track(s), title (with edit/ready status), description, stock session flag (for easy duplication across events), optional speakers (0 or more), and attached assets (PowerPoints, PDFs, URLs, audio recordings).
+Logistics Items: Non-content room usage blocks tied to time & place (e.g., registration hours, sales table, cloakroom, nursing room, catering/water service).
+D. Stakeholders & Commercial Entities
+Speakers: Global speaker profile (bio, headshot, affiliation, social links) allowing speakers to track historical engagements and pitch to multiple upcoming open calls.
+Exhibitors: Company profile, logo, booth staffing list, exhibitor package tier, and stubbed payment processing hooks.
+Sponsors: Sponsorship profiles supporting multi-level sponsorship (overall event, specific track, individual session, or special event/banquet) along with ticket entitlement tracking.
+
+3. User Roles & Access Control
+Super Admin: Global control over system configuration, cross-organization data management, and tenant settings.
+Organization Administrator: Full admin management for their specific nonprofit organization, events, schedules, speakers, and integrations. Can control what information is shared with other organizations.
+Speaker: Self-service user login to update global profile details, view past/upcoming engagements, and submit proposals via pitch forms.
+Exhibitor / Sponsor User: Self-service portals to manage company profiles, booth staff tickets, assets, and sponsorship deliverables.
+Authentication & SSO: Implement standard Django auth with support for Google Workspace SSO integration.
+
+4. Core Features & Workflow Requirements
+A. Pitch Workflow & Pitch Forms
+Provide standardized pitch forms for speakers to submit session proposals to one or more events within an active pitch window. Provide an administrative dashboard for staff to review, approve, merge, or reject pitches, automatically moving accepted pitches into the active session pool.
+B. Interactive Drag-and-Drop Schedule Planner
+Build an administrative grid view (room vs. time slot matrix) for event planning with drag-and-drop capabilities for both content sessions and logistics items. Implement robust automated validation checks:
+Speaker Conflict Check: Prevent scheduling a speaker in two different sessions at the same time slot.
+Room Overbook Check: Prevent placing multiple sessions/logistics items in the same room at the same time slot.
+C. Publishing & Data Export Engine
+Sessions marked "ready" (placed in a room, assigned a time, with edited title) must be publishable to S3 and generate:
+Structured JSON & CSV schedule feeds.
+Interactive HTML/JS user interface bundle.
+Printable PDF and plain text schedule exports.
+Stable ICS calendar feed links for attendees.
+D. Reporting, Analytics & Geographic Maps
+Pace Dashboard: Compare registration metrics over time across historical events in a series.
+Geographic Analytics: Heat maps and historical event location toggles using Leaflet.js to analyze attendee dispersion and inform future venue selection.
+Others TK -- need to be plug and play
+E. Productivity Utilities
+Event Copy Utility: Quickly copy recurring or "stock sessions" from one event to another.
+Historical Data Importer: CLI management command / API service conforming to a standardized schema for importing legacy event JSON/CSV data.
+Automated generation of social share content / media kit / etc. using admin-editable templates (or maybe/also hook into Canva API for folks who use that?) TK - lower-priority
+
+5. Third-Party Integrations & Connectors
+Design a modular connector architecture allowing admins to easily toggle integrations for their organization:
+AMS / Membership Sync: Connectors for MemberSuite and MemberClicks to sync attendee lists, active members, and link speaker profiles to member records.
+Virtual Event Platforms: Zoom API and Vimeo API connectors for automated session link creation and stream management.
+Cloud Storage: AWS S3 connector for direct static export publishing and media asset storage.
+AI Query Interface: Stub out an LLM service wrapper to allow natural language queries over the speaker/session database (e.g., "Find all academics who taught a Python workshop at NICAR").
+
+6. Deliverables & Execution Step-by-Step
+Please execute the following steps in order:
+1. Django Project Setup: Create the project directory structure, app segmentation (e.g., core, venues, events, speakers, integrations), and setting files.
+2. Models & Migrations: Write all Django models with full fields, relations, and docstrings.
+3. Admin & Validation Logic: Implement customized Django Admin views and model validation for conflict detection.
+4. REST API & Export Services: Scaffold DRF viewsets and service classes for publishing JSON/ICS feeds.
+5. Documentation & Handoff: Provide comprehensive inline documentation and a handoff README detailing model architecture and developer continuation instructions.

@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- event-planner ---
+# Legacy spreadsheets contain real PII (speaker/attendee contact + demographics). Never commit.
+data-scripts-old/
+media/
+private_media/
+published/
+staticfiles/
+.ruff_cache/
