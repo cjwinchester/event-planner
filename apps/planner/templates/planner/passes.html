@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Attendee links · {{ event.name }}{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}{% endblock %}
+{% block main %}
+<main class="mx-auto max-w-6xl p-6">
+  <h1 class="mb-1 text-xl font-semibold">Attendee links</h1>
+  <p class="mb-4 max-w-3xl text-sm text-gray-600">
+    Each registrant and speaker gets a private link to their own schedule, with Join buttons that always point at the session's current meeting.
+    Join links never appear in anything published. Send the links with your mail merge using the CSV.
+    A canceled registration's link stops working; if a link gets forwarded, give that person a new one.
+  </p>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
+    <span><strong>{{ stats.active }}</strong> active links ({{ stats.speakers }} speakers)</span>
+    <span>· <strong>{{ stats.used }}</strong> opened</span>
+    <span>· {{ stats.registrations }} active registrations</span>
+    {% if stats.no_email %}<span class="text-amber-700">· {{ stats.no_email }} without an email (speakers who haven't shared contact details)</span>{% endif %}
+    {% if stats.inactive %}<span class="text-gray-500">· {{ stats.inactive }} inactive</span>{% endif %}
+  </div>
+  <div class="mb-4 flex flex-wrap gap-2">
+    <form method="post" action="{% url 'planner:passes-issue' event.organization.slug event.slug %}">{% csrf_token %}
+      <button class="btn">Issue links for new registrants and speakers</button>
+    </form>
+    <a class="btn-secondary" href="{% url 'planner:passes-csv' event.organization.slug event.slug %}">Download CSV</a>
+    <a class="btn-secondary" href="{% url 'planner:run-of-show' event.organization.slug event.slug %}">Run of show</a>
+  </div>
+  <form method="get" class="mb-2"><input class="input" type="search" name="q" value="{{ q }}" placeholder="Search name or email"></form>
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100 text-left"><tr>
+      <th class="p-2">Name</th><th class="p-2">Email</th><th class="p-2">Kind</th><th class="p-2">Status</th>
+      <th class="p-2">Joins</th><th class="p-2" title="Distinct devices that used Join">Devices</th><th class="p-2">Last used</th><th class="p-2"></th>
+    </tr></thead>
+    <tbody>
+    {% for p in rows %}
+      <tr class="border-b border-gray-100{% if not p.is_active %} text-gray-400{% endif %}">
+        <td class="p-2">{{ p.name }}</td>
+        <td class="p-2">{{ p.email|default:"—" }}</td>
+        <td class="p-2">{{ p.get_kind_display }}</td>
+        <td class="p-2">{% if p.revoked_at %}Revoked{% elif not p.is_active %}Registration canceled{% elif p.first_used_at %}Opened{% else %}Not opened{% endif %}</td>
+        <td class="p-2">{{ p.n_joins }}</td>
+        <td class="p-2{% if p.n_devices > 4 %} font-semibold text-amber-700{% endif %}">{{ p.n_devices }}</td>
+        <td class="p-2">{{ p.last_used_at|date:"M j g:i A"|default:"—" }}</td>
+        <td class="p-2 whitespace-nowrap">
+          {% if p.is_active %}<a class="text-blue-700" href="{% url 'attendees:home' p.token %}" target="_blank" rel="noreferrer">view</a>{% endif %}
+          <form class="inline" method="post" action="{% url 'planner:pass-action' event.organization.slug event.slug p.pk %}">{% csrf_token %}
+            <button name="action" value="reissue" class="text-blue-700" onclick="return confirm('Replace this link? The old one stops working.')">new link</button>
+            {% if not p.revoked_at %}<button name="action" value="revoke" class="text-red-700" onclick="return confirm('Revoke this link?')">revoke</button>{% endif %}
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="p-4 text-gray-500">No links yet. Sync registrations, then issue links.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</main>
+{% endblock %}

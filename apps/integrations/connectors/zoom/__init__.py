@@ -1,46 +1,96 @@
-"""Zoom connector — STUB.
+"""Zoom connector: one meeting (or webinar) per session, hosted by the Zoom
+user behind the session's virtual room, plus attendance counts afterwards.
 
-Plan: Server-to-Server OAuth app (account_id + client_id + client_secret →
-POST https://zoom.us/oauth/token?grant_type=account_credentials&account_id=...).
-  create_meeting  → POST /v2/users/{host}/webinars (or /meetings) with
-                    start_time (UTC), duration, topic → MeetingInfo(join_url)
-  fetch_attendance→ GET /v2/report/webinars/{id}/participants (paged)
-Per-event credential: `host_user` (which Zoom user/room hosts the event),
-which maps naturally to venues.Room.host_account for virtual rooms.
-Wire results back with integrations.services.attach_meeting (Session.live_url
-+ ExternalIdentity).
+The org's Owner/admin creates one Server-to-Server OAuth app (see
+client.py for scopes) and enters its account ID, client ID and secret on the
+org's Zoom IntegrationConfig. Each virtual room's `host_account` names the
+licensed user (Member) whose account hosts that room's meetings.
+
+Options (IntegrationConfig.options, non-secret):
+  meeting_settings   dict merged into Zoom's `settings` for every meeting
+                     (e.g. {"waiting_room": true}); account defaults apply
+                     otherwise.
 """
 
+from __future__ import annotations
+
+from datetime import UTC
+
 from ...base import (
+    AttendanceRecord,
     BaseConnector,
     Capability,
     ConnectionStatus,
+    ConnectorError,
     CredentialField,
-    NotImplementedYet,
-    Scope,
+    MeetingInfo,
 )
 from ...registry import register
+from .client import ZoomClient
+
+SCHEDULED_MEETING, SCHEDULED_WEBINAR = 2, 5
+
+
+def _client(ctx) -> ZoomClient:
+    ctx.require("account_id", "client_id", "client_secret")
+    return ZoomClient(
+        account_id=ctx.get("account_id"), client_id=ctx.get("client_id"), client_secret=ctx.get("client_secret")
+    )
+
+
+def _plural(kind: str) -> str:
+    return "webinars" if kind == "webinar" else "meetings"
 
 
 @register
 class ZoomConnector(BaseConnector):
     slug = "zoom"
     display_name = "Zoom"
-    description = "Create meetings/webinars for sessions and pull attendance (stub)."
-    docs_url = "https://developers.zoom.us/docs/api/"
+    description = "Create a meeting or webinar for each virtual session and pull attendance counts."
+    docs_url = "https://developers.zoom.us/docs/internal-apps/s2s-oauth/"
     capabilities = frozenset({Capability.VIRTUAL_SESSIONS})
     credential_fields = [
         CredentialField("account_id", "Account ID", secret=False),
         CredentialField("client_id", "Client ID", secret=False),
         CredentialField("client_secret", "Client secret"),
-        CredentialField("host_user", "Default host user/email", secret=False, required=False, scope=Scope.EVENT),
     ]
 
     def test_connection(self, ctx):
-        return ConnectionStatus(False, "Zoom connector is a stub.")
+        try:
+            me = _client(ctx).request("GET", "/users/me")
+        except ConnectorError as exc:
+            return ConnectionStatus(False, str(exc))
+        return ConnectionStatus(True, f"Connected as {me.get('email', 'the account owner')}.")
 
-    def create_meeting(self, ctx, *, title, starts_at, minutes):
-        raise NotImplementedYet("Zoom meeting creation not implemented yet")
+    def _body(self, ctx, *, kind, title, starts_at, minutes, recorded) -> dict:
+        settings = {"auto_recording": "cloud" if recorded else "none", **ctx.options.get("meeting_settings", {})}
+        return {
+            "topic": title[:200],
+            "type": SCHEDULED_WEBINAR if kind == "webinar" else SCHEDULED_MEETING,
+            "start_time": starts_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "duration": minutes,
+            "timezone": ctx.event.timezone if ctx.event else "UTC",
+            "settings": settings,
+        }
 
-    def fetch_attendance(self, ctx, *, external_id):
-        raise NotImplementedYet("Zoom attendance not implemented yet")
+    def create_meeting(self, ctx, *, host, kind, title, starts_at, minutes, recorded):
+        body = self._body(ctx, kind=kind, title=title, starts_at=starts_at, minutes=minutes, recorded=recorded)
+        data = _client(ctx).request("POST", f"/users/{host}/{_plural(kind)}", json=body)
+        # start_url (the host's key) is deliberately not kept: it expires and grants host control.
+        return MeetingInfo(external_id=str(data["id"]), join_url=data["join_url"], raw={"uuid": data.get("uuid")})
+
+    def update_meeting(self, ctx, *, external_id, kind, title, starts_at, minutes, recorded):
+        body = self._body(ctx, kind=kind, title=title, starts_at=starts_at, minutes=minutes, recorded=recorded)
+        _client(ctx).request("PATCH", f"/{_plural(kind)}/{external_id}", json=body)
+
+    def delete_meeting(self, ctx, *, external_id, kind):
+        _client(ctx).request("DELETE", f"/{_plural(kind)}/{external_id}", ok_missing=True)
+
+    def fetch_attendance(self, ctx, *, external_id, kind):
+        for row in _client(ctx).paged(f"/report/{_plural(kind)}/{external_id}/participants", "participants"):
+            yield AttendanceRecord(
+                participant_id=row.get("participant_user_id") or row.get("user_id") or "",
+                email=row.get("user_email", ""),
+                name=row.get("name", ""),
+                minutes=(row.get("duration") or 0) // 60,
+            )

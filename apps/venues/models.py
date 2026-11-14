@@ -21,10 +21,15 @@ Mapping model (Leaflet.js)
 
 Virtual venues
 --------------
-A virtual event's "rooms" (Zoom Room 1, Webinar, ...) are `Room`s of a
-`Venue` with `kind=VIRTUAL`; `Room.join_url` / `host_account` hold the
-standing meeting link and host account. Hybrid events attach both a
-physical and a virtual venue via `events.EventVenue`.
+A virtual event's "rooms" (Zoom Room 1, Zoom Webinar, ...) are `Room`s of a
+`Venue` with `kind=VIRTUAL`. Each room is one Zoom user: `host_account` is
+the Zoom user (email) meetings are created under, `meeting_type` says
+meeting or webinar, and `join_url` is an optional standing link used when a
+session has no meeting of its own yet. Those are an organization's private
+details, so virtual venues have an `owner` and are hidden from other
+organizations (`OwnedDirectoryQuerySet`); physical venues stay shared.
+Hybrid events attach both a physical and a virtual venue via
+`events.EventVenue`.
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.functions import Lower
 
-from apps.core.models import OrgScopedManager, TimeStampedModel, Visibility
+from apps.core.models import OrgScopedManager, OwnedDirectoryQuerySet, TimeStampedModel, Visibility
 from apps.core.validators import validate_timezone
 
 _fraction = [MinValueValidator(0.0), MaxValueValidator(1.0)]
@@ -80,6 +85,17 @@ class Venue(TimeStampedModel):
         related_name="+",
         help_text="Provenance only; venues are shared by every organization.",
     )
+    owner = models.ForeignKey(
+        "organizations.Organization",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="private_venues",
+        help_text="Private to this organization (required for virtual venues). Blank = shared directory.",
+    )
+
+    OWNER_PATH = "owner"
+    objects = OwnedDirectoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["name"]
@@ -88,6 +104,10 @@ class Venue(TimeStampedModel):
     def __str__(self) -> str:
         where = ", ".join(p for p in (self.city, self.region) if p)
         return f"{self.name} ({where})" if where else self.name
+
+    def clean(self):
+        if self.kind == self.Kind.VIRTUAL and not self.owner_id:
+            raise ValidationError({"owner": "Virtual venues hold private meeting details; choose the owning org."})
 
     @property
     def is_virtual(self) -> bool:
@@ -118,6 +138,9 @@ class Floorplan(TimeStampedModel):
         blank=True,
         help_text="Optional georeference: the image's corners on a real map (for L.imageOverlay).",
     )
+
+    OWNER_PATH = "venue__owner"
+    objects = OwnedDirectoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["venue", "level", "label"]
@@ -167,13 +190,24 @@ class Room(TimeStampedModel):
     # Optional outline, fractional image coordinates: [[x, y], [x, y], ...].
     map_shape = models.JSONField(default=list, blank=True)
     accessibility_notes = models.TextField(blank=True)
-    # Virtual rooms
-    join_url = models.URLField(blank=True, help_text="Standing meeting link (virtual rooms).")
+
+    # Virtual rooms (only on owned virtual venues; see module docstring)
+    class MeetingType(models.TextChoices):
+        MEETING = "meeting", "Meeting"
+        WEBINAR = "webinar", "Webinar"
+
+    meeting_type = models.CharField(max_length=16, choices=MeetingType.choices, blank=True)
+    join_url = models.URLField(
+        blank=True, max_length=500, help_text="Standing link, used until a session gets its own meeting."
+    )
     host_account = models.CharField(
-        max_length=255, blank=True, help_text="Host account/login for a virtual room, e.g. room1@org.org."
+        max_length=255, blank=True, help_text="Zoom user (email or user ID) that hosts this room's meetings."
     )
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
+
+    OWNER_PATH = "venue__owner"
+    objects = OwnedDirectoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["venue", "sort_order", "name"]
@@ -194,6 +228,13 @@ class Room(TimeStampedModel):
         for point in self.map_shape or []:
             if not (isinstance(point, list | tuple) and len(point) == 2 and all(0 <= v <= 1 for v in point)):
                 raise ValidationError({"map_shape": "Use [[x, y], ...] with fractional (0–1) coordinates."})
+        if (self.join_url or self.host_account or self.meeting_type) and self.venue_id and not self.venue.owner_id:
+            # The shared directory is visible to every organization.
+            raise ValidationError("Meeting links and hosts belong on a private (owned) virtual venue.")
+
+    @property
+    def is_virtual(self) -> bool:
+        return self.venue.is_virtual
 
     @property
     def floor(self) -> str:

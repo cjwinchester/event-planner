@@ -137,7 +137,10 @@ class MeetingInfo:
 
 @dataclasses.dataclass
 class AttendanceRecord:
-    email: str
+    """One join (a person who rejoins appears again). Services keep counts only."""
+
+    participant_id: str = ""
+    email: str = ""
     name: str = ""
     joined_at: datetime | None = None
     left_at: datetime | None = None
@@ -164,11 +167,36 @@ class RegistrationSync(Protocol):
 
 @runtime_checkable
 class VirtualSessions(Protocol):
+    """Meetings/webinars hosted by one platform user (`host`, e.g. a Zoom
+    user's email). `kind` is "meeting" or "webinar"."""
+
     def create_meeting(
-        self, ctx: ConnectorContext, *, title: str, starts_at: datetime, minutes: int
+        self,
+        ctx: ConnectorContext,
+        *,
+        host: str,
+        kind: str,
+        title: str,
+        starts_at: datetime,
+        minutes: int,
+        recorded: bool,
     ) -> MeetingInfo: ...
 
-    def fetch_attendance(self, ctx: ConnectorContext, *, external_id: str) -> Iterable[AttendanceRecord]: ...
+    def update_meeting(
+        self,
+        ctx: ConnectorContext,
+        *,
+        external_id: str,
+        kind: str,
+        title: str,
+        starts_at: datetime,
+        minutes: int,
+        recorded: bool,
+    ) -> None: ...
+
+    def delete_meeting(self, ctx: ConnectorContext, *, external_id: str, kind: str) -> None: ...
+
+    def fetch_attendance(self, ctx: ConnectorContext, *, external_id: str, kind: str) -> Iterable[AttendanceRecord]: ...
 
 
 @runtime_checkable

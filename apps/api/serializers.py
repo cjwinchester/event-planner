@@ -37,18 +37,19 @@ class RoomCapacitySerializer(serializers.ModelSerializer):
         fields = ["setup", "capacity"]
 
 
-class RoomSerializer(serializers.ModelSerializer):
+class RoomSerializer(OrgModelSerializer):
     capacities = RoomCapacitySerializer(many=True, read_only=True)
 
     class Meta:
         model = Room
         fields = [
             "id", "venue", "name", "parts", "floorplan", "floor_label", "square_feet", "map_x", "map_y",
-            "map_shape", "accessibility_notes", "join_url", "is_active", "sort_order", "capacities",
+            "map_shape", "accessibility_notes", "meeting_type", "join_url", "host_account", "is_active",
+            "sort_order", "capacities",
         ]  # fmt: skip
 
 
-class FloorplanSerializer(serializers.ModelSerializer):
+class FloorplanSerializer(OrgModelSerializer):
     leaflet_bounds = serializers.ListField(read_only=True)
 
     class Meta:
@@ -57,7 +58,7 @@ class FloorplanSerializer(serializers.ModelSerializer):
         read_only_fields = ["width", "height"]
 
 
-class VenueSerializer(serializers.ModelSerializer):
+class VenueSerializer(OrgModelSerializer):
     lat = serializers.SerializerMethodField()
     lon = serializers.SerializerMethodField()
 
@@ -65,7 +66,7 @@ class VenueSerializer(serializers.ModelSerializer):
         model = Venue
         fields = [
             "id", "name", "kind", "address1", "address2", "city", "region", "postal_code", "country", "lat",
-            "lon", "timezone", "website", "phone", "email", "maps_url", "public_access_notes",
+            "lon", "timezone", "website", "phone", "email", "maps_url", "public_access_notes", "owner",
         ]  # fmt: skip
 
     def get_lat(self, obj) -> float | None:

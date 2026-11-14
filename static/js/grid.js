@@ -252,6 +252,14 @@ function renderGrid() {
   const y = (min) => (min - r0) * ppm;
 
   const grid = $("#grid");
+  if (!rooms.length) {
+    // Nothing to drop onto yet (e.g. a virtual event before its Zoom rooms are added).
+    grid.style.gridTemplateColumns = "";
+    grid.innerHTML = `<div class="grid-empty"><p><strong>This event has no rooms yet.</strong></p>
+      <p>Columns are rooms: hotel rooms for an in-person event, Zoom rooms for a virtual one.</p>
+      ${cfg.canEdit ? '<button type="button" class="btn" data-action="rooms">Set up rooms</button>' : ""}</div>`;
+    return;
+  }
   grid.style.gridTemplateColumns = `64px repeat(${rooms.length}, minmax(160px, 1fr))`;
   grid.innerHTML = "";
   grid.insertAdjacentHTML("beforeend", `<div class="grid-corner">${esc(TZ.split("/").pop().replace("_", " "))}</div>`);
@@ -619,6 +627,7 @@ function bindChrome() {
     if (action === "zoom-out") { state.zoom = Math.max(0, state.zoom - 1); render(); }
     if (action === "conflicts") showConflicts();
     if (action === "slots") openPanel(`${cfg.urls.slots}?day=${state.day}`);
+    if (action === "rooms") openPanel(cfg.urls.rooms);
     if (action === "new-session") openPanel(cfg.urls.newSession);
     if (action === "close-panel") $("#side-panel").hidden = true;
   });

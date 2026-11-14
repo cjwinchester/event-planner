@@ -1,0 +1,7 @@
+{% extends "attendees/base.html" %}
+{% block title %}No join link yet{% endblock %}
+{% block main %}
+<h1>{% if session %}{{ session.title }}{% else %}Session not found{% endif %}</h1>
+<p>{% if session %}There's no join link for this session yet. Try again closer to the start time.{% else %}This session isn't on the published schedule.{% endif %}</p>
+<p><a href="{% url 'attendees:home' pass.token %}">Back to your schedule</a></p>
+{% endblock %}

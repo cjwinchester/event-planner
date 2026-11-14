@@ -235,6 +235,10 @@ class EventVenue(models.Model):
     def __str__(self) -> str:
         return f"{self.venue} — {self.get_role_display()}"
 
+    def clean(self):
+        if self.event_id and self.venue_id and self.venue.owner_id not in (None, self.event.organization_id):
+            raise ValidationError({"venue": "That venue belongs to another organization."})
+
 
 class EventRoom(models.Model):
     """A venue room as used at one event: the schedule grid's columns.

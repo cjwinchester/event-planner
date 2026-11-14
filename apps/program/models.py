@@ -266,7 +266,11 @@ class Session(TimeStampedModel, RoomUsage):
     capacity = models.PositiveIntegerField(null=True, blank=True, help_text="Seat limit, if any.")
     cost = models.CharField(max_length=64, blank=True, help_text='Add-on price text, e.g. "$25".')
     is_recorded = models.BooleanField(null=True, blank=True, help_text="Blank = room default.")
-    live_url = models.URLField(blank=True, help_text="Stream/meeting link (Zoom, etc.).")
+    live_url = models.URLField(
+        blank=True,
+        max_length=500,
+        help_text="Join link entered by hand (overrides the room's standing link). Never published publicly.",
+    )
     recording_url = models.URLField(blank=True, help_text="Recording link (Vimeo, etc.).")
     working_folder_url = models.URLField(blank=True, help_text="Internal planning folder (Drive...).")
     internal_notes = models.TextField(blank=True)
@@ -441,6 +445,93 @@ class SessionAsset(TimeStampedModel):
     @property
     def href(self) -> str:
         return self.file.url if self.file else self.url
+
+
+class VirtualMeeting(TimeStampedModel):
+    """The meeting/webinar created for one session on a video platform (Zoom).
+
+    Created and updated only by `integrations.services` (connectors return
+    data; services write). The snapshot fields (`host_account`, `starts_at`,
+    `minutes`, `topic`, `meeting_type`) record what the platform was last
+    told, so `needs_sync()` can spot sessions moved since. Attendance is
+    stored as counts only, never as participant identities.
+    """
+
+    session = models.OneToOneField(Session, on_delete=models.CASCADE, related_name="virtual_meeting")
+    connector = models.CharField(max_length=64, default="zoom")
+    external_id = models.CharField(max_length=255)
+    join_url = models.URLField(max_length=1000)
+    meeting_type = models.CharField(max_length=16, default="meeting")
+    host_account = models.CharField(max_length=255)
+    topic = models.CharField(max_length=500, blank=True)
+    starts_at = models.DateTimeField()
+    minutes = models.PositiveIntegerField()
+    recorded = models.BooleanField(default=False, help_text="Cloud recording turned on.")
+    synced_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+    participant_count = models.PositiveIntegerField(null=True, blank=True, help_text="Joins, incl. rejoins.")
+    unique_participant_count = models.PositiveIntegerField(null=True, blank=True)
+    attendance_pulled_at = models.DateTimeField(null=True, blank=True)
+
+    ORG_PATH = "session__event__organization"
+    objects = OrgScopedManager()
+
+    class Meta:
+        ordering = ["starts_at"]
+
+    def __str__(self) -> str:
+        return f"{self.connector}:{self.external_id} for {self.session}"
+
+    def wanted(self) -> dict:
+        """What the platform *should* have for the session right now."""
+        return meeting_spec(self.session)
+
+    def needs_sync(self) -> bool:
+        want = self.wanted()
+        if want is None:
+            return True  # session unscheduled, canceled or moved off a virtual room: delete
+        have = {
+            "host_account": self.host_account,
+            "meeting_type": self.meeting_type,
+            "topic": self.topic,
+            "starts_at": self.starts_at,
+            "minutes": self.minutes,
+            "recorded": self.recorded,
+        }
+        return have != want
+
+
+def meeting_spec(session: Session) -> dict | None:
+    """The meeting a session needs, or None if it needs none: it must be
+    active, timed, and in a virtual room with a Zoom host."""
+    if session.is_canceled or not (session.starts_at and session.ends_at and session.room_id):
+        return None
+    room = session.room.room
+    if not room.host_account:
+        return None
+    return {
+        "host_account": room.host_account,
+        "meeting_type": room.meeting_type or "meeting",
+        "topic": session.title[:200],
+        "starts_at": session.starts_at,
+        "minutes": int((session.ends_at - session.starts_at).total_seconds() // 60),
+        "recorded": session.effective_is_recorded,
+    }
+
+
+def join_url_for(session: Session) -> str:
+    """The link attendees should use: the session's own meeting, else a
+    hand-entered link, else the room's standing link. '' if none or canceled."""
+    if session.is_canceled:
+        return ""
+    meeting = getattr(session, "virtual_meeting", None) if session.pk else None
+    if meeting is not None and meeting.join_url:
+        return meeting.join_url
+    if session.live_url:
+        return session.live_url
+    if session.room_id:
+        return session.room.room.join_url
+    return ""
 
 
 class LogisticsCategory(models.Model):

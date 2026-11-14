@@ -17,8 +17,9 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
   Admin classes use `core.admin.OrgScopedAdmin`/`OrgScopedInline`. API viewsets use
   `api.base.OrgScopedViewSet` with `OrgModelSerializer`. Role checks go through
   `organizations.permissions`. Add a tenancy test for any new org-owned endpoint.
-- **Privacy**: contracts/costs (`EventContract`), RFPs and concessions, registrations, `EventSpeaker`, form answers
-  and internal notes never reach a public bundle, feed or another org. Speaker private
+- **Privacy**: contracts/costs (`EventContract`), RFPs and concessions, registrations, `EventSpeaker`, form answers,
+  internal notes, attendee passes and **join links** (`Session.live_url`, `VirtualMeeting`, `Room.join_url`) never
+  reach a public bundle, feed or another org. Virtual venues are owned (`Venue.owner`) and hidden from other orgs. Speaker private
   fields require a `SpeakerShareGrant` (`speakers.sharing`).
 - **One schema**: exporters render only from the Event Bundle dict, and the importer
   accepts only bundles. Change `schemas/event-bundle/v1.json` additively.

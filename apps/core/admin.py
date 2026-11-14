@@ -51,6 +51,8 @@ def _scope_related_queryset(db_field, request, kwargs):
         kwargs["queryset"] = related._default_manager.filter(
             **{f"{related.ORG_PATH}__in": organization_ids_for(user, Role.VIEWER)}
         )
+    elif getattr(related, "OWNER_PATH", None):
+        kwargs["queryset"] = related._default_manager.visible_to_orgs(organization_ids_for(user, Role.VIEWER))
 
 
 class _OrgScopingMixin:
@@ -125,7 +127,29 @@ class OrgScopedInline(_OrgScopingMixin):
 
 
 class SharedDirectoryAdmin(admin.ModelAdmin):
-    """Global directory models: any org member may view/add/change."""
+    """Global directory models: any org member may view/add/change.
+
+    Models with `OWNER_PATH` (venues) may also hold rows private to one
+    organization; those are hidden from other orgs and editable only by the
+    owner's staff.
+    """
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if getattr(self.model, "OWNER_PATH", None) and not request.user.is_superuser:
+            qs = qs.visible_to_orgs(organization_ids_for(request.user, Role.VIEWER))
+        return qs
+
+    def _owner_ok(self, request, obj) -> bool:
+        path = getattr(self.model, "OWNER_PATH", None)
+        if obj is None or not path or request.user.is_superuser:
+            return True
+        owner = obj
+        for part in path.split("__"):
+            owner = getattr(owner, part, None)
+            if owner is None:
+                return True
+        return owner.pk in organization_ids_for(request.user, Role.STAFF)
 
     def _is_member(self, request) -> bool:
         user = request.user
@@ -145,7 +169,7 @@ class SharedDirectoryAdmin(admin.ModelAdmin):
         return self._is_editor(request)
 
     def has_change_permission(self, request, obj=None):
-        return self._is_editor(request)
+        return self._is_editor(request) and self._owner_ok(request, obj)
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
@@ -153,6 +177,10 @@ class SharedDirectoryAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         _scope_related_queryset(db_field, request, kwargs)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        _scope_related_queryset(db_field, request, kwargs)
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
         if not change and hasattr(obj, "created_by_organization_id") and not obj.created_by_organization_id:

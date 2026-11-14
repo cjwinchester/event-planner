@@ -80,6 +80,10 @@ erDiagram
   Sponsorship ||--o{ CompTicket : entitles
   ExhibitorBooking ||--o{ CompTicket : entitles
   Event ||--o{ PublishRun : publishes
+  Session ||--o| VirtualMeeting : "Zoom meeting"
+  Event ||--o{ AttendeePass : "private links"
+  Registration ||--o{ AttendeePass : "for"
+  AttendeePass ||--o{ JoinClick : logs
 ```
 
 ### Notable modeling choices
@@ -87,6 +91,15 @@ erDiagram
 - **EventRoom** is a venue room *as configured for one event*: grid column order, setup,
   capacity override, lab OS, recording default, public visibility. Sessions and logistics
   items are placed in EventRooms, so the physical room stays shared.
+- **Virtual rooms** are Rooms on a `Venue(kind=VIRTUAL, owner=org)`. Venues are a shared
+  directory, but owned venues (and their rooms/floorplans) are visible only to the owner:
+  `OwnedDirectoryQuerySet.visible_to_orgs()`, applied in admin, API, serializers and the
+  importer. A virtual room is one Zoom user (`host_account`), `meeting_type`
+  meeting/webinar, and an optional standing `join_url`.
+- **VirtualMeeting** records what Zoom was last told (host, type, topic, start, minutes,
+  recording) so `needs_sync()` can tell which sessions moved; services own all writes.
+- **AttendeePass** is a private token link per registrant/speaker; `JoinClick` logs Join
+  presses with a salted device hash (no IPs stored).
 - **Combined rooms**: a Room with `parts` (e.g. "White River E-F" = E + F). `Room.atoms()` /
   `program.conflicts.atoms_for_event_rooms()` expand rooms to indivisible parts; two
   bookings conflict when their atoms intersect.

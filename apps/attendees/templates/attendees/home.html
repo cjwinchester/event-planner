@@ -1,0 +1,55 @@
+{% extends "attendees/base.html" %}
+{% block title %}{{ event.name }}: your schedule{% endblock %}
+{% block main %}
+<header class="pass-head">
+  <h1>{{ event.name }}</h1>
+  <p class="who">Personal schedule for <strong>{{ pass.name }}</strong>{% if pass.kind == "speaker" %} (speaker){% endif %}</p>
+  <p class="warn" role="note">This page and its Join links are just for you. Please don't share them: if you know someone who wants to attend, send them to registration.</p>
+  <p class="tools">
+    <a href="{{ calendar_url }}">Add to your calendar</a>
+    <span class="hint">(subscribe to keep times and links up to date)</span>
+  </p>
+  <p class="hint">Times are {{ event.timezone }} ({{ tz_abbr }}).<span id="local-note"></span></p>
+</header>
+
+{% for d in days %}
+  <section class="day" aria-labelledby="day-{{ forloop.counter }}">
+    <h2 id="day-{{ forloop.counter }}">{{ d.day|date:"l, F j" }}</h2>
+    {% for slot in d.slots %}
+      <section class="slot">
+        <h3>Sessions starting at {{ slot.label }} {{ tz_abbr }} <span class="local" data-start="{{ slot.start_utc }}"></span></h3>
+        <ul class="sessions">
+          {% for s in slot.sessions %}
+            <li class="session{% if s.mine %} mine{% endif %}{% if s.canceled %} canceled{% endif %}">
+              <p class="title">{% if s.canceled %}<strong>Canceled:</strong> {% endif %}{{ s.title }} <span class="when">| {{ s.when }}</span>{% if s.mine %} <span class="badge">Your session</span>{% endif %}</p>
+              {% if s.join_url %}
+                <p><a class="join" href="{{ s.join_url }}" rel="noreferrer">Join<span class="sr-only">: {{ s.title }}</span></a></p>
+              {% elif not s.canceled %}
+                <p class="hint">Join link coming soon.</p>
+              {% endif %}
+              {% if s.speakers %}<p class="speakers">{{ s.speakers }}</p>{% endif %}
+              {% if s.room %}<p class="hint">{{ s.room }}</p>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  </section>
+{% empty %}
+  <p>The schedule hasn't been published yet. This link will show it when it is.</p>
+{% endfor %}
+
+<script>
+  // Show the visitor's own clock time beside each start time when their zone differs.
+  (() => {
+    const eventTz = "{{ event.timezone|escapejs }}";
+    const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!here || here === eventTz) return;
+    const fmt = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", weekday: "short" });
+    for (const el of document.querySelectorAll(".local[data-start]")) {
+      el.textContent = `(${fmt.format(new Date(el.dataset.start))} your time)`;
+    }
+    document.getElementById("local-note").textContent = ` Your time zone (${here}) is shown in parentheses.`;
+  })();
+</script>
+{% endblock %}

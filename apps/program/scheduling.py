@@ -106,3 +106,60 @@ def unplace(item) -> None:
     """Take an item off the grid (back to the unscheduled pool)."""
     item.room, item.starts_at, item.ends_at = None, None, None
     item.save(update_fields=["room", "starts_at", "ends_at", "updated_at"])
+
+
+@dataclass
+class FillResult:
+    placed: list[tuple[Session, object]] = field(default_factory=list)  # (session, EventRoom)
+    skipped: list[tuple[Session, str]] = field(default_factory=list)  # (session, reason)
+
+
+def fill_rooms(event: Event, *, day=None) -> FillResult:
+    """Put timed sessions that have no room into the first free room.
+
+    For virtual events (rooms are interchangeable Zoom accounts) and for
+    imports that know when sessions ran but not where. Each placement goes
+    through `place_session`, so conflict rules are the same as a drag; a
+    session that fits nowhere is reported, not forced. Rooms are tried in
+    grid order with webinar rooms last (they're usually reserved for
+    keynotes). Longest sessions first within a start time, so a long
+    session isn't squeezed out by short ones.
+    """
+    from .conflicts import Kind
+
+    rooms = sorted(
+        event.event_rooms.filter(is_schedulable=True).select_related("room"),
+        key=lambda er: (er.room.meeting_type == "webinar", er.sort_order, er.pk),
+    )
+    sessions = [
+        s
+        for s in Session.objects.active().filter(
+            event=event, room__isnull=True, starts_at__isnull=False, ends_at__isnull=False
+        )
+        if day is None or s.starts_at.astimezone(event.tz).date() == day
+    ]
+    sessions.sort(key=lambda s: (s.starts_at, -(s.ends_at - s.starts_at), s.title))
+    result = FillResult()
+    if not rooms:
+        result.skipped = [(s, "This event has no rooms.") for s in sessions]
+        return result
+    for s in sessions:
+        reasons: list[str] = []
+        for room in rooms:
+            try:
+                attempt = place_session(s, room=room, starts_at=s.starts_at, ends_at=s.ends_at)
+            except PlacementError as exc:
+                reasons = [str(exc)]
+                break
+            if attempt.saved:
+                result.placed.append((s, room))
+                break
+            other = [c.message for c in attempt.errors if c.kind != Kind.ROOM]
+            if other:  # a speaker clash follows the session into every room
+                reasons = other
+                break
+        else:
+            reasons = ["No free room at that time."]
+        if reasons:
+            result.skipped.append((s, " ".join(reasons)))
+    return result

@@ -54,6 +54,25 @@ class SharedDirectoryPermission(permissions.BasePermission):
             return user.is_superuser
         return user.is_superuser or bool(organization_ids_for(user, Role.STAFF))
 
+    def has_object_permission(self, request, view, obj):
+        # Private rows of a shared directory (an org's virtual venue): owner's staff only write.
+        path = getattr(type(obj), "OWNER_PATH", None)
+        if request.method in permissions.SAFE_METHODS or not path or request.user.is_superuser:
+            return True
+        owner = obj
+        for part in path.split("__"):
+            owner = getattr(owner, part, None)
+            if owner is None:
+                return True
+        return has_role(request.user, owner, Role.STAFF)
+
+
+class SharedDirectoryViewSetMixin:
+    """Hide other organizations' private directory rows (owned virtual venues)."""
+
+    def get_queryset(self):
+        return super().get_queryset().visible_to_user(self.request.user)
+
 
 class OrgScopedSerializerMixin:
     """Narrow every related-field queryset to the requesting user's orgs."""
@@ -74,6 +93,8 @@ class OrgScopedSerializerMixin:
                 target.queryset = qs.filter(pk__in=organization_ids_for(user, Role.STAFF))
             elif getattr(model, "ORG_PATH", None):
                 target.queryset = qs.filter(**{f"{model.ORG_PATH}__in": organization_ids_for(user, Role.VIEWER)})
+            elif getattr(model, "OWNER_PATH", None):
+                target.queryset = qs.visible_to_orgs(organization_ids_for(user, Role.VIEWER))
 
 
 class OrgModelSerializer(OrgScopedSerializerMixin, serializers.ModelSerializer):

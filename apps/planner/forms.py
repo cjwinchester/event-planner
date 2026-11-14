@@ -9,6 +9,7 @@ from django import forms
 
 from apps.events.models import EventRoom
 from apps.program.models import Session, SessionType, SkillLevel, TimeSlot, Track
+from apps.venues.models import Room
 
 
 def _day_choices(event):
@@ -115,3 +116,49 @@ class CopySlotsForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["from_day"].choices = _day_choices(event)
         self.fields["to_days"].choices = _day_choices(event)
+
+
+class VirtualRoomForm(forms.ModelForm):
+    """A standing virtual room: one Zoom user. Shared by all of the org's events."""
+
+    class Meta:
+        model = Room
+        fields = ["name", "meeting_type", "host_account", "join_url"]
+        labels = {"host_account": "Zoom host (email)", "join_url": "Standing join link (optional)"}
+
+    def __init__(self, *args, venue=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if venue is not None:
+            self.instance.venue = venue
+        self.fields["meeting_type"].required = True
+        self.fields["meeting_type"].initial = Room.MeetingType.MEETING
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        venue = self.instance.venue
+        clash = Room.objects.filter(venue=venue, name__iexact=name).exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise forms.ValidationError("You already have a room with that name.")
+        return name
+
+
+class EventRoomForm(forms.ModelForm):
+    """Per-event column settings."""
+
+    class Meta:
+        model = EventRoom
+        fields = ["display_name", "is_recorded", "is_schedulable", "is_public"]
+        labels = {
+            "display_name": "Name at this event (optional)",
+            "is_recorded": "Recorded",
+            "is_schedulable": "Show on the grid",
+            "is_public": "Name it in public schedules",
+        }
+
+
+class FillRoomsForm(forms.Form):
+    day = forms.ChoiceField(required=False)
+
+    def __init__(self, *args, event, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["day"].choices = [("", "All days"), *_day_choices(event)]

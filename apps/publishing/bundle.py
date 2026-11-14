@@ -28,7 +28,7 @@ from django.db.models import Prefetch
 from django.utils import timezone
 
 from apps.commerce.models import DealStatus, ExhibitorBooking, Sponsorship
-from apps.program.models import LogisticsItem, Session, SessionSpeaker
+from apps.program.models import LogisticsItem, Session, SessionSpeaker, join_url_for
 from apps.speakers.models import EventSpeaker, SpeakerShareGrant
 from apps.venues.models import Room
 
@@ -101,7 +101,9 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
     org = event.organization
 
     # ---- sessions -------------------------------------------------------
-    sessions_qs = Session.objects.filter(event=event).select_related("session_type", "skill_level", "room__room")
+    sessions_qs = Session.objects.filter(event=event).select_related(
+        "session_type", "skill_level", "room__room", "virtual_meeting"
+    )
     sessions_qs = sessions_qs.ready() if public else sessions_qs.active()
     if public and not event.publish_schedule:
         sessions_qs = sessions_qs.none()
@@ -154,7 +156,6 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
             "requires_preregistration": s.requires_preregistration,
             "capacity": s.capacity,
             "cost": s.cost,
-            "live_url": s.live_url,
             "recording_url": s.recording_url,
             "canceled": s.is_canceled,
             "speakers": [
@@ -170,6 +171,9 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
             "updated_at": utc(s.updated_at),
         }
         if not public:
+            # Join links never go public: attendees get them through personal
+            # pass pages (apps.attendees), so a published feed can't leak them.
+            d["live_url"] = join_url_for(s)
             d.update(
                 status=s.status,
                 title_status=s.title_status,

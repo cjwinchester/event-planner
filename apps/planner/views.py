@@ -68,6 +68,7 @@ def grid(request, event):
             "sessionPanel": reverse("planner:session-panel", args=[0]).replace("/0/", "/{id}/"),
             "newSession": reverse("planner:session-new", args=[event.organization.slug, event.slug]),
             "slots": reverse("planner:slots", args=[event.organization.slug, event.slug]),
+            "rooms": reverse("planner:rooms", args=[event.organization.slug, event.slug]),
             "admin": {
                 "session": reverse("admin:program_session_change", args=[0]).replace("/0/", "/{id}/"),
                 "logistics": reverse("admin:program_logisticsitem_change", args=[0]).replace("/0/", "/{id}/"),

@@ -128,12 +128,18 @@ def _import(bundle: dict, org, result: ImportResult) -> None:
     venue_by_key: dict[str, Venue] = {}
     for i, v in enumerate(ev.get("venues", [])):
         addr = v.get("address", {})
-        venue = Venue.objects.filter(name__iexact=v["name"], city__iexact=addr.get("city", "")).first()
+        kind = v.get("kind", Venue.Kind.PHYSICAL)
+        # Virtual venues are private to their org; never attach another org's.
+        candidates = Venue.objects.visible_to_orgs([org.pk])
+        if kind == Venue.Kind.VIRTUAL:
+            candidates = candidates.filter(owner=org)
+        venue = candidates.filter(name__iexact=v["name"], city__iexact=addr.get("city", "")).first()
         created = venue is None
         if created:
             venue = Venue.objects.create(
                 name=v["name"],
-                kind=v.get("kind", Venue.Kind.PHYSICAL),
+                kind=kind,
+                owner=org if kind == Venue.Kind.VIRTUAL else None,
                 address1=addr.get("address1", ""),
                 address2=addr.get("address2", ""),
                 city=addr.get("city", ""),
@@ -165,9 +171,11 @@ def _import(bundle: dict, org, result: ImportResult) -> None:
     for r in bundle["rooms"]:
         venue = venue_by_key.get(r.get("venue_id") or "") or fallback_venue
         if venue is None:
+            virtual = event.format == Event.Format.VIRTUAL
             venue = Venue.objects.create(
                 name=f"{event.name} venue",
-                kind=Venue.Kind.VIRTUAL if event.format == Event.Format.VIRTUAL else Venue.Kind.PHYSICAL,
+                kind=Venue.Kind.VIRTUAL if virtual else Venue.Kind.PHYSICAL,
+                owner=org if virtual else None,
                 created_by_organization=org,
             )
             EventVenue.objects.get_or_create(event=event, venue=venue)

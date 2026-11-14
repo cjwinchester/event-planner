@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("feeds/", include("apps.publishing.urls")),
     path("plan/", include("apps.planner.urls")),
+    path("my/", include("apps.attendees.urls")),
     path("", RedirectView.as_view(url="/plan/", permanent=False)),
 ]
 

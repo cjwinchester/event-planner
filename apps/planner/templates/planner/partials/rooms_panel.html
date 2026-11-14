@@ -1,0 +1,102 @@
+<div class="panel" id="rooms-panel">
+  <h2 class="panel-title">Rooms</h2>
+  <p class="text-sm text-gray-500">The grid's columns, left to right.{% if is_virtual %} For a virtual event, each room is one Zoom user: sessions in it get their meetings from that account.{% endif %}</p>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  {% if error %}<p class="panel-error">{{ error }}</p>{% endif %}
+
+  {% if fill_result %}
+    {% if fill_result.skipped %}
+      <div class="panel-note">
+        <p class="text-sm font-semibold">{{ fill_result.skipped|length }} not placed:</p>
+        <ul class="text-xs">
+          {% for s, reason in fill_result.skipped %}<li><strong>{{ s.title }}</strong>: {{ reason }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% if fill_result.placed and can_edit %}
+      <form hx-post="{% url 'planner:rooms-unfill' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+        {% for s, er in fill_result.placed %}<input type="hidden" name="placed" value="{{ s.pk }}:{{ er.pk }}">{% endfor %}
+        <button class="btn-secondary">Undo fill</button>
+      </form>
+    {% endif %}
+  {% endif %}
+
+  <ol class="room-list">
+    {% for er in event_rooms %}
+      <li id="event-room-{{ er.pk }}" class="room-row{% if not er.is_schedulable %} is-hidden{% endif %}">
+        <div class="room-main">
+          <strong>{{ er.name }}</strong>
+          {% if er.display_name %}<span class="text-xs text-gray-500">({{ er.room.name }})</span>{% endif %}
+          <span class="text-xs text-gray-500">
+            {% if er.room.venue.is_virtual %}
+              {{ er.room.get_meeting_type_display|default:"Virtual" }}{% if er.room.host_account %} · {{ er.room.host_account }}{% else %} · <em>no Zoom host yet</em>{% endif %}
+            {% else %}{{ er.room.venue.name }}{% endif %}
+            {% if er.is_recorded %} · recorded{% endif %}
+            {% if not er.is_schedulable %} · hidden from grid{% endif %}
+            · {{ er.n_sessions }} session{{ er.n_sessions|pluralize }}
+          </span>
+        </div>
+        {% if can_edit %}
+          <div class="room-actions">
+            <button class="text-xs" title="Move left" aria-label="Move {{ er.name }} left" hx-post="{% url 'planner:room-move' event.organization.slug event.slug er.pk %}" hx-vals='{"direction": "up"}' hx-target="#side-panel-body" {% if forloop.first %}disabled{% endif %}>↑</button>
+            <button class="text-xs" title="Move right" aria-label="Move {{ er.name }} right" hx-post="{% url 'planner:room-move' event.organization.slug event.slug er.pk %}" hx-vals='{"direction": "down"}' hx-target="#side-panel-body" {% if forloop.last %}disabled{% endif %}>↓</button>
+            <button class="text-xs text-blue-700" hx-get="{% url 'planner:room-edit' event.organization.slug event.slug er.pk %}" hx-target="#event-room-{{ er.pk }}" hx-swap="innerHTML">edit</button>
+            {% if not er.n_sessions and not er.n_logistics %}
+              <button class="text-xs text-red-700" hx-post="{% url 'planner:room-remove' event.organization.slug event.slug er.pk %}" hx-target="#side-panel-body" hx-confirm="Remove {{ er.name }} from this event?">remove</button>
+            {% endif %}
+          </div>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li class="text-sm text-gray-500">No rooms yet: add some below so sessions have somewhere to go.</li>
+    {% endfor %}
+  </ol>
+
+  {% if can_edit %}
+    {% if unplaced %}
+      <h3 class="panel-section">Fill rooms</h3>
+      <p class="text-xs text-gray-500">{{ unplaced }} session{{ unplaced|pluralize }} {{ unplaced|pluralize:"has,have" }} a time but no room. Put each into the first free room (webinar rooms last); speaker clashes are skipped and listed.</p>
+      <form class="flex gap-2 items-end" hx-post="{% url 'planner:rooms-fill' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+        <label class="field"><span>Day</span>{{ fill_form.day }}</label>
+        <button class="btn" {% if not event_rooms %}disabled title="Add rooms first"{% endif %}>Fill rooms</button>
+      </form>
+    {% endif %}
+
+    {% if standing %}
+      <h3 class="panel-section">Your virtual rooms</h3>
+      <form hx-post="{% url 'planner:rooms' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+        <input type="hidden" name="all_standing" value="1">
+        <p class="text-xs text-gray-500">{% for r in standing %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        <button class="btn-secondary">Add all {{ standing|length }}</button>
+      </form>
+    {% endif %}
+
+    {% if available %}
+      <h3 class="panel-section">Add rooms</h3>
+      <form hx-post="{% url 'planner:rooms' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+        <fieldset class="room-picks">
+          {% regroup available by venue as by_venue %}
+          {% for group in by_venue %}
+            <p class="text-xs font-semibold mt-2">{{ group.grouper.name }}</p>
+            {% for r in group.list %}
+              <label class="text-sm block"><input type="checkbox" name="rooms" value="{{ r.pk }}"> {{ r.name }}{% if r.meeting_type %} <span class="text-xs text-gray-500">({{ r.get_meeting_type_display }})</span>{% endif %}</label>
+            {% endfor %}
+          {% endfor %}
+        </fieldset>
+        <button class="btn-secondary">Add selected</button>
+      </form>
+    {% endif %}
+
+    <h3 class="panel-section">New virtual room</h3>
+    <p class="text-xs text-gray-500">A Zoom user (e.g. one of your licensed Members). Saved for your organization and reusable at every event.</p>
+    <form hx-post="{% url 'planner:room-new' event.organization.slug event.slug %}" hx-target="#side-panel-body">
+      {{ new_form.non_field_errors }}
+      <label class="field"><span>Name</span>{{ new_form.name }}</label>
+      <label class="field"><span>Type</span>{{ new_form.meeting_type }}</label>
+      <label class="field"><span>{{ new_form.host_account.label }}</span>{{ new_form.host_account }}</label>
+      <label class="field"><span>{{ new_form.join_url.label }}</span>{{ new_form.join_url }}</label>
+      {% for f in new_form %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endfor %}
+      <button class="btn">Add room</button>
+    </form>
+  {% endif %}
+</div>

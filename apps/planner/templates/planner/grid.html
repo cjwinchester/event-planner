@@ -16,6 +16,7 @@
       <button type="button" class="btn-secondary" data-action="zoom-in" title="Zoom in">+</button>
       <button type="button" class="btn-secondary" data-action="undo" disabled title="Undo last move (Ctrl+Z)">Undo</button>
       <button type="button" class="btn-secondary" data-action="refresh">Refresh</button>
+      <button type="button" class="btn-secondary" data-action="rooms">Rooms</button>
       <button type="button" class="btn-secondary" data-action="slots">Time slots</button>
       <button type="button" class="btn-secondary" data-action="conflicts">Conflicts <span id="conflict-count" class="badge"></span></button>
     </div>
@@ -31,6 +32,7 @@
         <h2>Unscheduled <span id="pool-count"></span></h2>
         {% if request.can_edit %}
           <button type="button" class="btn-secondary" data-action="new-session">+ New</button>
+          <button type="button" class="btn-secondary" data-action="rooms" title="Place timed sessions into free rooms">Fill rooms…</button>
         {% endif %}
       </div>
       <input id="pool-search" class="input" type="search" placeholder="Search title or speaker">

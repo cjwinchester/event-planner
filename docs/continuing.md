@@ -32,6 +32,32 @@ concession tracking (admin + API).
 
 Browser tests use Playwright.
 
+**Virtual events and attendee links:**
+- **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
+  columns. An org's virtual rooms (one per Zoom user, e.g. Zoom Room 0–5 + Zoom Webinar)
+  live on a *private* virtual venue (`Venue.owner`) and are reused every year ("Add all").
+  When an event has no rooms the grid says so instead of rendering nothing.
+- **Fill rooms** (`program.scheduling.fill_rooms`): timed sessions without a room go into
+  the first free room (webinar rooms last), via `place_session`; speaker clashes are listed
+  and skipped; "Undo fill" reverses it.
+- **Join links are never published.** `live_url` is internal-only in bundles. Attendees and
+  speakers get a private **pass** (`apps.attendees`): `/my/<token>/` (schedule in the
+  old join-link doc's layout, AP-style times + the visitor's local time), a personal ICS
+  feed, and Join buttons that redirect via `/my/<token>/join/<public_id>/` to the
+  session's *current* link and log the click. Canceled registrations and revoked passes stop
+  working; "new link" reissues one person's. Staff page: **Attendee links** (issue, CSV for
+  mail merge, revoke/reissue, per-person joins and device counts).
+- **Run of show** (staff): every session's room, Zoom host, join link and whether it's an
+  own meeting, a hand-entered link or the room's standing link; Zoom sync controls.
+- **Zoom** (`integrations/connectors/zoom`, `integrations/meetings.py`): S2S OAuth; one
+  meeting or webinar per session in the room's host account (`Room.host_account`);
+  `sync_meetings` creates / updates / recreates (host changed) / deletes (canceled,
+  unscheduled) and stores `program.VirtualMeeting`; `pull_attendance` stores joins and
+  unique-participant counts only. Tested against faked HTTP; **not yet run against a live
+  Zoom account.**
+- Join link precedence (`program.models.join_url_for`): own meeting → `Session.live_url`
+  (hand-entered) → room's standing link.
+
 **Phase 1:**
 
 Steps 1–5 of [the spec](spec/initial-prompt.txt): project setup, full models and
@@ -65,6 +91,17 @@ clean.
 
 ## Requested, not started
 
+- **Zoom go-live checklist** (needs the account Owner): create a Server-to-Server OAuth app
+  with the scopes listed in `connectors/zoom/client.py`; add an org IntegrationConfig
+  (connector `zoom`); set each Zoom room's host email in the Rooms panel; run "Create / update
+  meetings" on a test event and check one meeting in Zoom (passcode/waiting room come from
+  the account defaults unless `options.meeting_settings` overrides them).
+- **Email from the app** (attendee links now go out by CSV + mail merge): send passes on
+  issue and automatically to people who register later; needs a mail provider.
+- **AccessFest 2026 room history**: the dev DB has AF26's Zoom rooms but sessions were
+  placed by "Fill rooms", not their real rooms. The real layout can be recovered by
+  grouping the join-link PDF's links by meeting ID (only room labels stored).
+
 - **Hotel share link + hotel change tracking** (requested 2026-11-13). A read-only,
   revocable link (no login) for hotel staff. From a per-event cutoff (a few days before the
   conference), changes to scheduled session titles are recorded and float to the top of the
@@ -92,8 +129,11 @@ clean.
   blocking is right for new planning, but staff likely need an "acknowledge / allow this
   conflict" override with a note.
 - **Legacy data marks cancellations in titles** ("CANCELLED - …"); the converter handles it.
-- **Virtual events had no room data** (AccessFest): its sessions import unscheduled until
-  staff set up virtual rooms (e.g. Zoom Room 1–5) and place them.
+- **Virtual events had no room data** (AccessFest): its sessions import unscheduled; add the
+  Zoom rooms in the Rooms panel and use Fill rooms.
+- **AccessFest source data attributes one speaker (ID `cffe2e51`) to 11 sessions** in the
+  rescue file; the PDF shows other speakers on most of them. Fix upstream in
+  conference-schedule-rescue, then re-import (Fill rooms flags it as speaker clashes).
 - **Non-room locations** ("Near the escalator near White River E") currently become rooms;
   they may fit better as logistics locations.
 
@@ -102,7 +142,8 @@ clean.
 | Area | Gap |
 |---|---|
 | MemberSuite | Registration address columns are unverified against a live tenant (see connector docstring). No write-back. |
-| MemberClicks, Zoom | Stubs with documented plans. Vimeo can list videos but not yet attach recordings to sessions. |
+| MemberClicks | Stub with a documented plan. Vimeo can list videos but not yet attach recordings to sessions. |
+| Zoom | Built, untested live (see checklist above). Meeting sync runs on demand from Run of show, not automatically after each grid move. Cloud recordings aren't pulled into Vimeo yet. |
 | Room pickup | Manual `RoomPickupSnapshot` entry only. Hotel portals usually need a login, so automate later if at all. |
 | Hotel spec sheet | Fields exist on sessions and logistics (setup, headcount, A/V, F&B, DNP via `is_public`). The "For Hotel" exporter is not written yet. |
 | Speaker dedupe | `SpeakerProfile.merged_into` exists; there's no merge service or UI yet. |
@@ -126,7 +167,9 @@ clean.
 - [ ] Speaker and attendee notifications (email)
 - [ ] Embeddable schedule widget / attendee web app reading the bundle
 - [ ] Mobile app API polish (auth flows, push), offline bundle
-- [ ] Session feedback / ratings, attendance counts (`SessionRegistration` / Zoom attendance)
+- [x] Private per-attendee schedule + join links (replaces the shared join-link doc)
+- [x] Zoom meeting per session + attendance counts (untested live)
+- [ ] Session feedback / ratings
 - [ ] Sponsor lead retrieval, exhibitor portal
 
 ## How to extend

@@ -15,7 +15,7 @@ conflicts) runs on every write.
 | `organizations/` | Your organizations |
 | `calendar/` | Upcoming events across all orgs (NETWORK/PUBLIC visibility) |
 | `public/events/` | Unauthenticated: PUBLIC upcoming events |
-| `venues/`, `rooms/`, `floorplans/` | Shared venue directory (members read, staff write) |
+| `venues/`, `rooms/`, `floorplans/` | Shared venue directory (members read, staff write). Venues with an `owner` (an org's virtual/Zoom rooms) are visible to, and editable by, that org only |
 | `series/`, `events/` | Org-scoped. Event actions below |
 | `events/{id}/bundle/` | Event Bundle; `?audience=internal` includes unscheduled sessions and workflow fields |
 | `events/{id}/grid/` | Everything the drag-and-drop planner needs: rooms, time slots, placed items, unscheduled pool, conflicts |

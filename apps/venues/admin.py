@@ -19,7 +19,9 @@ class FloorplanInline(SharedDirectoryInline, admin.TabularInline):
 class RoomInline(SharedDirectoryInline, admin.TabularInline):
     model = Room
     extra = 0
-    fields = ["name", "floorplan", "floor_label", "square_feet", "join_url", "is_active", "sort_order"]
+    fields = [
+        "name", "floorplan", "floor_label", "square_feet", "meeting_type", "host_account", "is_active", "sort_order",
+    ]  # fmt: skip
     show_change_link = True
 
 
@@ -30,14 +32,14 @@ class RoomCapacityInline(SharedDirectoryInline, admin.TabularInline):
 
 @admin.register(Venue)
 class VenueAdmin(SharedDirectoryAdmin, GISModelAdmin):
-    list_display = ["name", "kind", "city", "region", "country", "has_location"]
+    list_display = ["name", "kind", "owner", "city", "region", "country", "has_location"]
     list_filter = ["kind", "country", "region"]
     search_fields = ["name", "city", "address1"]
     inlines = [FloorplanInline, RoomInline]
     readonly_fields = ["geocode_source", "shared_insights", "created_by_organization"]
     actions = ["geocode_selected"]
     fieldsets = (
-        (None, {"fields": ("name", "kind", "website", "phone", "email", "maps_url")}),
+        (None, {"fields": ("name", "kind", "owner", "website", "phone", "email", "maps_url")}),
         ("Address", {"fields": ("address1", "address2", "city", "region", "postal_code", "country", "timezone")}),
         ("Map", {"fields": ("location", "geocode_source")}),
         ("Attendees", {"fields": ("public_access_notes",)}),
@@ -84,7 +86,7 @@ class VenueAdmin(SharedDirectoryAdmin, GISModelAdmin):
 @admin.register(Room)
 class RoomAdmin(SharedDirectoryAdmin):
     list_display = ["name", "venue", "floor", "square_feet", "is_combination"]
-    list_filter = ["venue"]
+    list_filter = ["venue__kind"]  # a venue filter would list other orgs' private venues
     search_fields = ["name", "venue__name"]
     filter_horizontal = ["parts"]
     inlines = [RoomCapacityInline]

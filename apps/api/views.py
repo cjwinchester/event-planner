@@ -34,7 +34,7 @@ from apps.speakers.models import SpeakerProfile, SpeakerShareGrant
 from apps.venues.models import Floorplan, Room, Venue
 
 from . import serializers as s
-from .base import OrgScopedViewSet, Role, SharedDirectoryPermission
+from .base import OrgScopedViewSet, Role, SharedDirectoryPermission, SharedDirectoryViewSetMixin
 
 # ------------------------------------------------------------------ orgs & calendar
 
@@ -65,7 +65,7 @@ class CalendarViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 # ------------------------------------------------------------------ venues (shared)
 
 
-class VenueViewSet(viewsets.ModelViewSet):
+class VenueViewSet(SharedDirectoryViewSetMixin, viewsets.ModelViewSet):
     queryset = Venue.objects.all()
     serializer_class = s.VenueSerializer
     permission_classes = [SharedDirectoryPermission]
@@ -73,14 +73,14 @@ class VenueViewSet(viewsets.ModelViewSet):
     filterset_fields = ["kind", "city", "region", "country"]
 
 
-class RoomViewSet(viewsets.ModelViewSet):
+class RoomViewSet(SharedDirectoryViewSetMixin, viewsets.ModelViewSet):
     queryset = Room.objects.prefetch_related("capacities", "parts")
     serializer_class = s.RoomSerializer
     permission_classes = [SharedDirectoryPermission]
     filterset_fields = ["venue"]
 
 
-class FloorplanViewSet(viewsets.ModelViewSet):
+class FloorplanViewSet(SharedDirectoryViewSetMixin, viewsets.ModelViewSet):
     queryset = Floorplan.objects.all()
     serializer_class = s.FloorplanSerializer
     permission_classes = [SharedDirectoryPermission]

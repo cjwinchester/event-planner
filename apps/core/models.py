@@ -103,6 +103,27 @@ def _has_field(model, name: str) -> bool:
     return True
 
 
+class OwnedDirectoryQuerySet(models.QuerySet):
+    """Shared-directory rows (no owner) plus rows private to one organization.
+
+    Venues are a shared directory, but an organization's *virtual* rooms carry
+    its Zoom host accounts and standing links, so those venues are owned and
+    hidden from everyone else. Models set `OWNER_PATH` to the owner FK path
+    ("owner" on Venue, "venue__owner" on Room/Floorplan).
+    """
+
+    def visible_to_orgs(self, org_ids):
+        path = self.model.OWNER_PATH
+        return self.filter(Q(**{f"{path}__isnull": True}) | Q(**{f"{path}__in": list(org_ids)}))
+
+    def visible_to_user(self, user):
+        if user.is_superuser:
+            return self
+        from apps.organizations.permissions import organization_ids_for
+
+        return self.visible_to_orgs(organization_ids_for(user))
+
+
 def resolve_organization(obj):
     """Walk `obj`'s ORG_PATH ("event__organization") to its Organization, or
     None if any hop is unset (e.g. an unsaved inline)."""

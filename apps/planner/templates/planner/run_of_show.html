@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Run of show · {{ event.name }}{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}<span class="text-sm text-gray-500">times in {{ event.timezone }}</span>{% endblock %}
+{% block main %}
+<main class="mx-auto max-w-6xl p-6">
+  <h1 class="mb-1 text-xl font-semibold">Run of show</h1>
+  <p class="mb-4 max-w-3xl text-sm text-gray-600">For staff, hosts, captioners and interpreters: every session's room, Zoom host and join link. Private to your organization; attendees get their links from <a class="text-blue-700" href="{% url 'planner:passes' event.organization.slug event.slug %}">their own pages</a>.</p>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  <section class="mb-4 rounded border border-gray-200 bg-white p-3 text-sm">
+    <h2 class="font-semibold">Zoom meetings</h2>
+    {% if zoom_connected %}
+      <p class="text-gray-600">
+        {{ plan.create }} to create · {{ plan.update }} to update · {{ plan.delete }} to delete · {{ plan.ok }} up to date.
+        Sessions in a room with a Zoom host get their own meeting in that host's account; moving a session to another host's room makes a new meeting (attendee links follow automatically).
+      </p>
+      <form method="post" action="{% url 'planner:zoom-action' event.organization.slug event.slug %}" class="mt-2 flex flex-wrap gap-2">{% csrf_token %}
+        <button class="btn" name="action" value="sync" {% if not plan.create and not plan.update and not plan.delete %}disabled{% endif %}>Create / update meetings</button>
+        <button class="btn-secondary" name="action" value="attendance">Pull attendance for ended sessions</button>
+      </form>
+      {% for label, run in recent_runs %}
+        <p class="mt-2 text-xs text-gray-500">Last {{ label }}: {{ run.get_status_display }}{% if run.finished_at %} at {{ run.finished_at|date:"M j g:i A" }}{% endif %}{% if run.stats %} · {% for k, v in run.stats.items %}{% if v %}{{ v }} {{ k }} {% endif %}{% endfor %}{% endif %}</p>
+        {% if run.message %}<pre class="mt-1 whitespace-pre-wrap text-xs text-red-700">{{ run.message }}</pre>{% endif %}
+      {% endfor %}
+    {% else %}
+      <p class="text-gray-600">Zoom isn't connected.{% if is_admin %} Create a Server-to-Server OAuth app in the Zoom App Marketplace (as the account Owner), then add its account ID, client ID and secret under <a class="text-blue-700" href="{% url 'admin:integrations_integrationconfig_add' %}">Admin → Integration configs</a> (connector: Zoom).{% else %} Ask an org admin to connect it.{% endif %} Until then, rooms' standing links and hand-entered links are used.</p>
+    {% endif %}
+  </section>
+  {% for day, rows in days %}
+    <h2 class="mt-6 border-b border-gray-300 pb-1 text-lg font-semibold">{{ day|date:"l, F j" }}</h2>
+    <table class="w-full text-sm">
+      <thead class="text-left text-gray-500"><tr>
+        <th class="p-2 w-28">Time</th><th class="p-2">Session</th><th class="p-2">Room / host</th><th class="p-2">Join link</th><th class="p-2" title="Join clicks from attendee links">Clicks</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="border-b border-gray-100 align-top{% if r.s.is_canceled %} text-gray-400{% endif %}">
+          <td class="p-2 whitespace-nowrap">{{ r.start|time:"g:i A" }}{% if r.end %}–{{ r.end|time:"g:i A" }}{% endif %}</td>
+          <td class="p-2">{% if r.s.is_canceled %}<strong>Canceled:</strong> {% endif %}{{ r.s.title }}{% if r.speakers %}<div class="text-xs text-gray-500">{{ r.speakers }}</div>{% endif %}</td>
+          <td class="p-2">{{ r.room|default:"—" }}{% if r.host %}<div class="text-xs text-gray-500">{{ r.host }}{% if r.meeting_type == "webinar" %} · webinar{% endif %}</div>{% endif %}</td>
+          <td class="p-2">
+            {% if r.join_url and not r.s.is_canceled %}
+              <a class="text-blue-700 break-all" href="{{ r.join_url }}" rel="noreferrer" target="_blank">{{ r.join_url|truncatechars:48 }}</a>
+              <div class="text-xs text-gray-500">
+                {% if r.source == "meeting" %}Own meeting{% if r.stale %} · <span class="text-amber-700">changed since created: sync</span>{% endif %}
+                {% elif r.source == "manual" %}Entered by hand{% else %}Room's standing link{% endif %}
+                {% if r.meeting.unique_participant_count is not None %} · {{ r.meeting.unique_participant_count }} attended{% endif %}
+              </div>
+            {% elif not r.s.is_canceled %}<span class="text-amber-700">No link</span>{% endif %}
+          </td>
+          <td class="p-2">{{ r.clicks }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% empty %}
+    <p class="text-gray-500">No sessions have times yet.</p>
+  {% endfor %}
+</main>
+{% endblock %}

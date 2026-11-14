@@ -1,0 +1,21 @@
+<form class="room-edit" hx-post="{% url 'planner:room-edit' event.organization.slug event.slug er.pk %}" hx-target="#side-panel-body">
+  {% if room_form %}
+    <p class="text-xs text-gray-500">Room settings apply to every event that uses this room.</p>
+    <label class="field"><span>Name</span>{{ room_form.name }}</label>
+    <label class="field"><span>Type</span>{{ room_form.meeting_type }}</label>
+    <label class="field"><span>{{ room_form.host_account.label }}</span>{{ room_form.host_account }}</label>
+    <label class="field"><span>{{ room_form.join_url.label }}</span>{{ room_form.join_url }}</label>
+    {% for f in room_form %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endfor %}
+    {{ room_form.non_field_errors }}
+    <p class="text-xs text-gray-500 mt-2">At this event:</p>
+  {% endif %}
+  <label class="field"><span>{{ form.display_name.label }}</span>{{ form.display_name }}</label>
+  <label class="text-sm block">{{ form.is_recorded }} {{ form.is_recorded.label }}</label>
+  <label class="text-sm block">{{ form.is_schedulable }} {{ form.is_schedulable.label }}</label>
+  <label class="text-sm block">{{ form.is_public }} {{ form.is_public.label }}</label>
+  {% for f in form %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endfor %}
+  <div class="flex gap-2 mt-2">
+    <button class="btn">Save</button>
+    <button type="button" class="btn-secondary" hx-get="{% url 'planner:rooms' event.organization.slug event.slug %}" hx-target="#side-panel-body">Cancel</button>
+  </div>
+</form>

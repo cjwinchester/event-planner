@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import pitch_views, views
+from . import pass_views, pitch_views, room_views, views
 
 app_name = "planner"
 urlpatterns = [
@@ -25,6 +25,19 @@ urlpatterns = [
     path("pitches/<int:pk>/vote/", pitch_views.pitch_vote, name="pitch-vote"),
     path("pitches/<int:pk>/panel/", pitch_views.pitch_panel, name="pitch-panel"),
     path("<slug:org_slug>/<slug:event_slug>/sessions/new/", views.session_new, name="session-new"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/", room_views.rooms, name="rooms"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/new/", room_views.room_new, name="room-new"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/fill/", room_views.fill, name="rooms-fill"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/unfill/", room_views.unfill, name="rooms-unfill"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/<int:pk>/", room_views.room_edit, name="room-edit"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/<int:pk>/move/", room_views.room_move, name="room-move"),
+    path("<slug:org_slug>/<slug:event_slug>/rooms/<int:pk>/remove/", room_views.room_remove, name="room-remove"),
+    path("<slug:org_slug>/<slug:event_slug>/links/", pass_views.passes, name="passes"),
+    path("<slug:org_slug>/<slug:event_slug>/links/issue/", pass_views.passes_issue, name="passes-issue"),
+    path("<slug:org_slug>/<slug:event_slug>/links/links.csv", pass_views.passes_csv, name="passes-csv"),
+    path("<slug:org_slug>/<slug:event_slug>/links/<int:pk>/", pass_views.pass_action, name="pass-action"),
+    path("<slug:org_slug>/<slug:event_slug>/run-of-show/", pass_views.run_of_show, name="run-of-show"),
+    path("<slug:org_slug>/<slug:event_slug>/run-of-show/zoom/", pass_views.zoom_action, name="zoom-action"),
     path("<slug:org_slug>/<slug:event_slug>/slots/", views.slots, name="slots"),
     path("<slug:org_slug>/<slug:event_slug>/slots/copy/", views.slots_copy, name="slots-copy"),
     path("<slug:org_slug>/<slug:event_slug>/slots/<int:slot_pk>/", views.slot_edit, name="slot-edit"),

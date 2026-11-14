@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.assistant",
     "apps.api",
     "apps.planner",
+    "apps.attendees",
 ]
 
 MIDDLEWARE = [
@@ -239,6 +240,8 @@ FIELD_ENCRYPTION_KEYS = env.list("FIELD_ENCRYPTION_KEYS", default=[])
 
 # --- App settings ---------------------------------------------------------
 EVENT_PLANNER = {
+    # Public base URL of this app (for links built outside a request, e.g. emails).
+    "SITE_URL": env("SITE_URL", default=""),
     # Base URL that locally published files are served from (dev only).
     "LOCAL_PUBLISH_BASE_URL": env("LOCAL_PUBLISH_BASE_URL", default="http://localhost:8000/published/"),
     # Optional: path to a built conference-schedule-ui dist/ to publish as the

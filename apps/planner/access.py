@@ -8,6 +8,7 @@ from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from apps.events.models import Event
 from apps.organizations.models import Membership
@@ -18,7 +19,9 @@ Role = Membership.Role
 
 def event_view(min_role: str = Role.VIEWER):
     """Decorator for views taking (request, org_slug, event_slug, ...).
-    Passes `event` instead of the slugs; adds `request.can_edit`."""
+    Passes `event` instead of the slugs; adds `request.can_edit`. Renders in
+    the event's timezone, so template date/time filters show event-local
+    times (they convert aware datetimes to the *active* zone)."""
 
     def decorator(view):
         @login_required
@@ -30,7 +33,8 @@ def event_view(min_role: str = Role.VIEWER):
             if not has_role(request.user, event.organization, min_role):
                 raise PermissionDenied
             request.can_edit = has_role(request.user, event.organization, Role.STAFF)
-            return view(request, event, *args, **kwargs)
+            with timezone.override(event.tz):
+                return view(request, event, *args, **kwargs)
 
         return wrapper
 
