@@ -103,6 +103,27 @@ TEMPLATES = [
 DATABASES = {
     "default": env.db("DATABASE_URL", default="postgis://postgres@localhost:5432/event_planner"),
 }
+# Reuse connections across requests (a new Postgres connection per request costs
+# several ms); health checks drop connections the server closed.
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
+# One cache shared by every worker process: allauth's login/code rate limits,
+# connector token caches (Zoom, MemberSuite) and the cached public bundle all
+# rely on it. Without CACHES, Django uses a separate in-memory cache per process,
+# so limits and caches silently multiply by the number of workers.
+# Default: Django's database cache (no extra service; table made by a migration).
+# Set CACHE_URL=redis://host:6379/0 to use Redis instead (needs the `redis` package).
+_cache_url = env("CACHE_URL", default="db://django_cache")
+if _cache_url.startswith(("redis://", "rediss://")):
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": _cache_url}}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": _cache_url.removeprefix("db://") or "django_cache",
+        }
+    }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"

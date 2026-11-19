@@ -33,3 +33,6 @@ STORAGES = {
 }
 
 EVENT_PLANNER = {**EVENT_PLANNER, "LOCAL_PUBLISH_BASE_URL": "http://testserver/published/"}  # noqa: F405
+
+# Tests: an isolated in-memory cache (no shared state between runs).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
