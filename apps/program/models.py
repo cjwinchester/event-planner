@@ -253,6 +253,11 @@ class Session(TimeStampedModel, RoomUsage):
         related_name="owned_sessions",
         help_text="Staffer responsible for this session.",
     )
+    room_count = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Actual attendance, counted in the room during or after the session.",
+    )
     is_plenary = models.BooleanField(
         default=False,
         help_text="All-attendee session (keynote, welcome). Overlapping sessions are flagged as warnings.",

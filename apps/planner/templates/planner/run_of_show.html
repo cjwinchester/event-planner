@@ -60,7 +60,7 @@
     <h2 class="mt-6 border-b border-gray-300 pb-1 text-lg font-semibold">{{ day|date:"l, F j" }}</h2>
     <table class="w-full text-sm">
       <thead class="text-left text-gray-500"><tr>
-        <th class="p-2 w-28">Time</th><th class="p-2">Session</th><th class="p-2">Room / host</th><th class="p-2">Join link</th><th class="p-2" title="Join clicks from attendee links">Clicks</th>
+        <th class="p-2 w-28">Time</th><th class="p-2">Session</th><th class="p-2">Room / host</th><th class="p-2">Join link</th><th class="p-2" title="Join clicks from attendee links">Clicks</th><th class="p-2" title="Actual attendance counted in the room">Room count</th>
       </tr></thead>
       <tbody>
       {% for r in rows %}
@@ -79,6 +79,15 @@
             {% elif not r.s.is_canceled %}<span class="text-amber-700">No link</span>{% endif %}
           </td>
           <td class="p-2">{{ r.clicks }}</td>
+          <td class="p-2 whitespace-nowrap">
+            {% if not r.s.is_canceled %}
+              <input type="number" min="0" inputmode="numeric" class="input w-20" name="room_count" value="{{ r.s.room_count|default_if_none:'' }}"
+                     aria-label="Room count for {{ r.s.title }}"
+                     hx-post="{% url 'planner:room-count' event.organization.slug event.slug r.s.pk %}" hx-trigger="change"
+                     hx-target="next .count-status" hx-swap="innerHTML">
+              <span class="count-status"></span>
+            {% endif %}
+          </td>
         </tr>
       {% endfor %}
       </tbody>

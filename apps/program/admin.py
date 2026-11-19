@@ -94,6 +94,7 @@ class SessionAdmin(_EventRoomLimitMixin, EventTimezoneMixin, OrgScopedAdmin):
         ("Description", {"fields": ("description", "description_status")}),
         ("Classification", {"fields": ("session_type", "skill_level", "tracks", "status", "source", "owner")}),
         ("Placement", {"fields": ("room", "starts_at", "ends_at", "is_plenary", "conflict_report", "readiness")}),
+        ("Attendance", {"fields": ("room_count",)}),
         (
             "Logistics",
             {

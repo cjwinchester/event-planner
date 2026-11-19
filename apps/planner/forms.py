@@ -24,7 +24,7 @@ class SessionQuickForm(forms.ModelForm):
         model = Session
         fields = [
             "title", "title_status", "description_status", "status", "session_type", "skill_level", "tracks",
-            "is_plenary", "internal_notes",
+            "is_plenary", "room_count", "internal_notes",
         ]  # fmt: skip
         widgets = {
             "tracks": forms.CheckboxSelectMultiple,

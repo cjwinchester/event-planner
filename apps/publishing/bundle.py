@@ -192,6 +192,7 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
                 title_status=s.title_status,
                 description_status=s.description_status,
                 is_stock=s.is_stock,
+                room_count=s.room_count,
                 source=s.source,
             )
         session_dicts.append(d)

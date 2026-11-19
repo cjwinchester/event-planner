@@ -209,6 +209,7 @@
         "title_status": {"enum": ["pending", "needs_edit", "edited"], "description": "internal"},
         "description_status": {"enum": ["pending", "needs_edit", "edited"], "description": "internal"},
         "is_stock": {"type": "boolean", "description": "internal"},
+        "room_count": {"type": ["integer", "null"], "description": "internal: actual attendance counted in the room"},
         "source": {"type": "string", "description": "internal"}
       }
     },

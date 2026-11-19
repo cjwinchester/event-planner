@@ -91,3 +91,24 @@ class TestSponsorsPage:
         client.force_login(world.staff_user)
         rows = list(csv.reader(io.StringIO(client.get(url(world, "exhibitors-csv")).content.decode())))
         assert rows[0][-1] == "Need power?" and rows[1][0] == "Acme Data" and rows[1][-1] == "True"
+
+
+@pytest.mark.django_db
+def test_room_count_from_run_of_show(client, world, make_session):
+    from apps.program.models import Session
+    from conftest import at
+
+    s = make_session("Counted", room=world.er_a, start=at(5, 10), end=at(5, 11))
+    url = reverse("planner:room-count", args=[world.org.slug, world.event.slug, s.pk])
+    client.force_login(world.viewer_user)
+    assert client.post(url, {"room_count": "80"}).status_code == 403
+    client.force_login(world.staff_user)
+    assert (
+        "Room count"
+        in client.get(reverse("planner:run-of-show", args=[world.org.slug, world.event.slug])).content.decode()
+    )
+    assert client.post(url, {"room_count": "87"}).status_code == 200
+    assert Session.objects.get(pk=s.pk).room_count == 87
+    assert client.post(url, {"room_count": "lots"}).status_code == 422
+    client.post(url, {"room_count": ""})
+    assert Session.objects.get(pk=s.pk).room_count is None

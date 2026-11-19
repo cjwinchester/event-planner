@@ -49,6 +49,7 @@ urlpatterns = [
     path("<slug:org_slug>/<slug:event_slug>/links/<int:pk>/", pass_views.pass_action, name="pass-action"),
     path("<slug:org_slug>/<slug:event_slug>/run-of-show/", pass_views.run_of_show, name="run-of-show"),
     path("<slug:org_slug>/<slug:event_slug>/run-of-show/zoom/", pass_views.zoom_action, name="zoom-action"),
+    path("<slug:org_slug>/<slug:event_slug>/run-of-show/<int:pk>/count/", pass_views.room_count, name="room-count"),
     path("<slug:org_slug>/<slug:event_slug>/speakers/updates/", speaker_views.speaker_updates, name="speaker-updates"),
     path(
         "<slug:org_slug>/<slug:event_slug>/speakers/updates/review/",

@@ -146,6 +146,11 @@ clean.
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
 
+## Room counts
+
+`Session.room_count`: actual attendance counted in the room, entered on the run-of-show page
+(saves on change), in the grid's session panel, the admin or the API; internal bundles only.
+
 ## Hotel links (2026-11-19)
 
 `apps.hotel`: an Organization's staff create a private, revocable link per hotel/venue (no

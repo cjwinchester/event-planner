@@ -178,7 +178,7 @@ class SessionSerializer(OrgModelSerializer):
             "id", "event", "public_id", "title", "title_status", "description", "description_status", "summary",
             "session_type", "skill_level", "tracks", "status", "source", "owner", "is_plenary", "is_stock",
             "requires_preregistration", "capacity", "cost", "is_recorded", "live_url", "recording_url",
-            "working_folder_url", "internal_notes", "extra", "setup", "av_requirements",
+            "working_folder_url", "internal_notes", "extra", "room_count", "setup", "av_requirements",
             "fnb_requirements", "hotel_notes", "room", "starts_at", "ends_at", "is_ready", "readiness_problems",
             "speakers", "updated_at",
         ]  # fmt: skip

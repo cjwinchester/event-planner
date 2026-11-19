@@ -198,3 +198,16 @@ def zoom_action(request, event):
         msg = "Creating and updating Zoom meetings. Reload in a minute to see the result."
     url = reverse("planner:run-of-show", args=[event.organization.slug, event.slug])
     return redirect(f"{url}?{urlencode({'msg': msg})}")
+
+
+@event_view(Role.STAFF)
+@require_POST
+def room_count(request, event, pk):
+    """Enter a session's actual room count from the run of show (htmx, saves on change)."""
+    session = get_object_or_404(Session, pk=pk, event=event)
+    raw = request.POST.get("room_count", "").strip()
+    if raw and not raw.isdigit():
+        return HttpResponse('<span class="text-xs text-red-700">Whole number</span>', status=422)
+    session.room_count = int(raw) if raw else None
+    session.save(update_fields=["room_count", "updated_at"])
+    return HttpResponse('<span class="text-xs text-green-700" role="status">Saved</span>')
