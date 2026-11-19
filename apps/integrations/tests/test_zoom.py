@@ -119,6 +119,22 @@ class TestZoomConnector:
         rows = list(ZoomConnector().fetch_attendance(self.ctx(), external_id="123", kind="meeting"))
         assert [(r.participant_id, r.email, r.minutes) for r in rows] == [("a", "", 10), ("", "b@x.org", 1)]
 
+    def test_check_host(self, zoom_http):
+        zoom_http(
+            {
+                ("GET", "/users/r1@x"): FakeResponse(200, {"type": 2, "status": "active"}),
+                ("GET", "/users/basic@x"): FakeResponse(200, {"type": 1, "status": "active"}),
+                ("GET", "/users/web@x"): FakeResponse(200, {"type": 2, "status": "active"}),
+                ("GET", "/users/web@x/settings"): FakeResponse(200, {"feature": {"webinar": False}}),
+                ("GET", "/users/ghost@x"): FakeResponse(404, {"message": "User does not exist"}),
+            }
+        )
+        c, ctx = ZoomConnector(), self.ctx()
+        assert c.check_host(ctx, host="r1@x", kind="meeting") == (True, "Licensed.")
+        assert c.check_host(ctx, host="basic@x", kind="meeting")[0] is False
+        assert "no webinar license" in c.check_host(ctx, host="web@x", kind="webinar")[1]
+        assert "Not found" in c.check_host(ctx, host="ghost@x", kind="meeting")[1]
+
     def test_errors_carry_zoom_message(self, zoom_http):
         from apps.integrations.base import ConnectorError
 
@@ -147,6 +163,14 @@ class FakeZoom:
     def delete_meeting(self, ctx, *, external_id, kind):
         self.log.append(("delete", external_id))
 
+    def test_connection(self, ctx):
+        from apps.integrations.base import ConnectionStatus
+
+        return ConnectionStatus(True, "Connected as owner@ire.example.")
+
+    def check_host(self, ctx, *, host, kind):
+        return (host != "r2@ire.example", "Licensed." if host != "r2@ire.example" else "Basic (unlicensed).")
+
     def fetch_attendance(self, ctx, *, external_id, kind):
         yield AttendanceRecord(participant_id="a")
         yield AttendanceRecord(participant_id="a")  # rejoin
@@ -157,6 +181,8 @@ class FakeZoom:
 def zoomed(world, make_session, monkeypatch):
     fake = FakeZoom()
     monkeypatch.setattr(meetings, "enabled_connector", lambda org, cap, event=None, prefer="": (fake, None))
+    world.event.virtual_meetings = True
+    world.event.save()
     venue = Venue.objects.create(name="IRE Zoom", kind=Venue.Kind.VIRTUAL, owner=world.org)
     r1 = Room.objects.create(venue=venue, name="Zoom Room 1", host_account="r1@ire.example")
     r2 = Room.objects.create(venue=venue, name="Zoom Room 2", host_account="r2@ire.example")
@@ -207,8 +233,37 @@ class TestMeetingSync:
         m = VirtualMeeting.objects.get()
         assert (m.participant_count, m.unique_participant_count) == (3, 2)
 
+    def test_off_for_event_never_calls_zoom(self, zoomed):
+        world, fake, *_ = zoomed
+        world.event.virtual_meetings = False
+        world.event.save()
+        run = meetings.sync_meetings(world.event)
+        assert run.status == SyncRun.Status.FAILED and "turned off" in run.message and fake.log == []
+
+    def test_ended_sessions_are_left_alone(self, zoomed):
+        world, fake, s, *_ = zoomed
+        Session.objects.filter(pk=s.pk).update(
+            starts_at=at(5, 11).replace(year=2020), ends_at=at(5, 12).replace(year=2020)
+        )
+        assert meetings.meeting_plan(world.event)["create"] == 0
+        meetings.sync_meetings(world.event)
+        assert fake.log == []
+
+    def test_setup_checks(self, zoomed):
+        world, fake, *_ = zoomed
+        checks = {c.label: c for c in meetings.test_setup(world.event, write_test=True)}
+        assert checks["Credentials"].ok
+        assert checks["Zoom Room 1 (r1@ire.example)"].ok
+        assert checks["Zoom Room 2 (r2@ire.example)"].ok is False
+        assert checks["Test meeting"].ok and fake.log[-2:] == [
+            ("create", "r1@ire.example", "meeting", "Event planner connection test (deleted)"),
+            ("delete", "1"),
+        ]
+        assert not VirtualMeeting.objects.exists()  # the test meeting is never stored
+
     def test_not_connected(self, world, monkeypatch):
         monkeypatch.setattr(meetings, "enabled_connector", lambda *a, **k: (None, None))
+        world.event.virtual_meetings = True
         run = meetings.sync_meetings(world.event)
         assert run.status == SyncRun.Status.FAILED and "isn't connected" in run.message
 
@@ -221,7 +276,39 @@ def test_run_of_show_queues_sync(client, world, monkeypatch):
     called = []
     monkeypatch.setattr(meetings, "sync_meetings", lambda event, triggered_by=None: called.append(event))
     client.force_login(world.staff_user)
-    page = client.get(reverse("planner:run-of-show", args=[world.org.slug, world.event.slug])).content.decode()
-    assert "Create / update meetings" in page
-    client.post(reverse("planner:zoom-action", args=[world.org.slug, world.event.slug]), {"action": "sync"})
+    page_url = reverse("planner:run-of-show", args=[world.org.slug, world.event.slug])
+    action_url = reverse("planner:zoom-action", args=[world.org.slug, world.event.slug])
+    assert "Turn on Zoom meetings" in client.get(page_url).content.decode()
+    client.post(action_url, {"action": "sync"})
+    assert called == []  # off by default: nothing queued
+    client.post(action_url, {"action": "on"})
+    world.event.refresh_from_db()
+    assert world.event.virtual_meetings
+    assert "Create / update meetings" in client.get(page_url).content.decode()
+    client.post(action_url, {"action": "sync"})
     assert called == [world.event]  # ImmediateBackend runs the task inline in tests
+
+
+@pytest.mark.django_db
+def test_admin_save_and_test_button(client, world, monkeypatch):
+    from django.urls import reverse
+
+    from apps.integrations import admin as integrations_admin
+    from apps.integrations.base import ConnectionStatus
+
+    config = IntegrationConfig.objects.create(organization=world.org, connector="zoom", credentials=CREDS)
+    url = reverse("admin:integrations_integrationconfig_change", args=[config.pk])
+    client.force_login(world.admin_user)
+    assert "Save and test connection" in client.get(url).content.decode()
+
+    def fake_test(cfg):
+        cfg.last_test_ok, cfg.last_test_message = True, "Connected as owner@ire.example."
+        cfg.save()
+        return ConnectionStatus(True, cfg.last_test_message)
+
+    monkeypatch.setattr(integrations_admin, "test_integration", fake_test)
+    data = {"organization": world.org.pk, "connector": "zoom", "is_enabled": "on", "options": "{}", "_test": "1"}
+    resp = client.post(url, data, follow=True)
+    assert "Test passed: Connected as owner@ire.example." in resp.content.decode()
+    config.refresh_from_db()
+    assert config.credentials == CREDS  # blank credentials field keeps the stored ones

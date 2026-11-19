@@ -2,7 +2,10 @@
 {% block title %}Events · Event Planner{% endblock %}
 {% block main %}
 <main class="mx-auto max-w-4xl p-6">
-  <h1 class="mb-4 text-xl font-semibold">Your events</h1>
+  <div class="mb-4 flex items-center justify-between gap-3">
+    <h1 class="text-xl font-semibold">Your events</h1>
+    {% if can_create %}<a class="btn" href="{% url 'planner:event-new' %}">+ New event</a>{% endif %}
+  </div>
   <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Upcoming</h2>
   {% include "planner/partials/event_rows.html" with events=upcoming %}
   <h2 class="mb-2 mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">Past</h2>

@@ -47,6 +47,7 @@ def event_list(request):
         {
             "upcoming": [e for e in events if e.end_date >= today][::-1],
             "past": [e for e in events if e.end_date < today],
+            "can_create": bool(organization_ids_for(request.user, Role.STAFF)),
         },
     )
 

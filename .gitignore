@@ -233,3 +233,6 @@ bin/tailwindcss
 
 # Built by bin/tailwindcss-build.sh
 static/css/app.css
+
+# Local dev Postgres cluster (bin/devdb.sh)
+.pgdata/

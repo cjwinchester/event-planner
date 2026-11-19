@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if has_change_permission or add %}
+    <div class="submit-row" style="margin-top:-1px">
+      <input type="submit" name="_test" value="Save and test connection">
+      <span style="align-self:center;color:var(--body-quiet-color)">Saves, then asks the service whether these credentials work. The result appears at the top of the page and in the “Last test” fields.</span>
+    </div>
+  {% endif %}
+{% endblock %}

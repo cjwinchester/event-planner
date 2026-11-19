@@ -3,6 +3,8 @@
 Read README.md, then docs/architecture.md. The roadmap and known gaps are in docs/continuing.md.
 
 ## Commands
+- Local PostGIS: `bash bin/devdb.sh` (cluster on 127.0.0.1:5433, data in gitignored `.pgdata/`;
+  run it again after a reboot).
 - `uv run pytest` (needs PostGIS; `DATABASE_URL` in `.env`). On macOS, PDF tests need
   `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib`; otherwise they skip.
 - `uv run ruff check . && uv run ruff format --check .`

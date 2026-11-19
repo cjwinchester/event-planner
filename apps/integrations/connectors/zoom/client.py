@@ -8,7 +8,8 @@ account: `POST /users/{email}/meetings`. Scopes the app needs:
   meeting:delete:meeting:admin, webinar:write:webinar:admin,
   webinar:update:webinar:admin, webinar:delete:webinar:admin,
   report:read:list_meeting_participants:admin,
-  report:read:list_webinar_participants:admin
+  report:read:list_webinar_participants:admin,
+  user:read:user:admin, user:read:settings:admin   (setup test: hosts exist, licensed, webinars)
 
 Tokens last an hour and are cached per account in Django's cache. Zoom
 limits meeting create/update to 100 requests per user per day, far above a

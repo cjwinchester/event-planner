@@ -2,6 +2,8 @@ import json
 
 from django import forms
 from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from apps.core.admin import OrgScopedAdmin
 from apps.organizations.models import Membership
@@ -74,6 +76,27 @@ class IntegrationConfigAdmin(OrgScopedAdmin):
             "organization", "event", "connector", "is_enabled", "new_credentials", "options", "notes",
             "last_tested_at", "last_test_ok", "last_test_message",
         ]  # fmt: skip
+
+    def _test_and_stay(self, request, obj):
+        """'Save and test connection' button on the change form (templates/admin/integrations/...)."""
+        try:
+            status = test_integration(obj)
+        except Exception as exc:  # show any connector failure to the admin
+            self.message_user(request, f"Test failed: {exc}", messages.ERROR)
+        else:
+            level = messages.SUCCESS if status.ok else messages.WARNING
+            self.message_user(request, f"Test {'passed' if status.ok else 'failed'}: {status.message}", level)
+        return HttpResponseRedirect(reverse("admin:integrations_integrationconfig_change", args=[obj.pk]))
+
+    def response_add(self, request, obj, post_url_continue=None):
+        if "_test" in request.POST:
+            return self._test_and_stay(request, obj)
+        return super().response_add(request, obj, post_url_continue)
+
+    def response_change(self, request, obj):
+        if "_test" in request.POST:
+            return self._test_and_stay(request, obj)
+        return super().response_change(request, obj)
 
     @admin.action(description="Test connection")
     def test_selected(self, request, queryset):

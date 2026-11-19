@@ -1,10 +1,11 @@
 from django.urls import path
 
-from . import pass_views, pitch_views, room_views, views
+from . import event_views, pass_views, pitch_views, room_views, views
 
 app_name = "planner"
 urlpatterns = [
     path("", views.event_list, name="event-list"),
+    path("new/", event_views.event_new, name="event-new"),
     path("sessions/<int:pk>/panel/", views.session_panel, name="session-panel"),
     path("sessions/<int:pk>/place/", views.session_place, name="session-place"),
     path("sessions/<int:pk>/speakers/add/", views.session_speaker_add, name="session-speaker-add"),

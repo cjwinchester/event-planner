@@ -29,6 +29,7 @@ from ...registry import register
 from .client import ZoomClient
 
 SCHEDULED_MEETING, SCHEDULED_WEBINAR = 2, 5
+LICENSED = 2  # Zoom user type: 1 Basic, 2 Licensed
 
 
 def _client(ctx) -> ZoomClient:
@@ -61,6 +62,27 @@ class ZoomConnector(BaseConnector):
         except ConnectorError as exc:
             return ConnectionStatus(False, str(exc))
         return ConnectionStatus(True, f"Connected as {me.get('email', 'the account owner')}.")
+
+    def check_host(self, ctx, *, host: str, kind: str) -> tuple[bool, str]:
+        """Is `host` a licensed user in this account (with webinars, for a webinar room)?"""
+        client = _client(ctx)
+        try:
+            user = client.request("GET", f"/users/{host}")
+        except ConnectorError as exc:
+            return False, f"Not found in this Zoom account ({exc})."
+        if user.get("status") not in (None, "active"):
+            return False, f"User is {user.get('status')}."
+        if user.get("type") != LICENSED:
+            return False, "User is Basic (unlicensed): meetings are capped at 40 minutes."
+        if kind == "webinar":
+            try:
+                feature = client.request("GET", f"/users/{host}/settings").get("feature", {})
+            except ConnectorError as exc:
+                return False, f"Couldn't read the user's settings ({exc})."
+            if not feature.get("webinar"):
+                return False, "Webinar room, but this user has no webinar license."
+            return True, "Licensed, webinars enabled."
+        return True, "Licensed."
 
     def _body(self, ctx, *, kind, title, starts_at, minutes, recorded) -> dict:
         settings = {"auto_recording": "cloud" if recorded else "none", **ctx.options.get("meeting_settings", {})}

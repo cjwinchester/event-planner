@@ -21,12 +21,12 @@ from django.views.decorators.http import require_POST
 from apps.attendees.models import AttendeePass, JoinClick
 from apps.attendees.services import issue_passes, pass_url
 from apps.integrations.base import Capability
-from apps.integrations.meetings import meeting_plan
+from apps.integrations.meetings import meeting_plan, test_setup
 from apps.integrations.models import SyncRun
 from apps.integrations.services import enabled_connector
 from apps.integrations.tasks import pull_event_attendance, sync_event_meetings
 from apps.organizations.permissions import has_role
-from apps.program.models import Session, join_url_for
+from apps.program.models import Session, VirtualMeeting, join_url_for
 
 from .access import Role, event_view
 
@@ -111,6 +111,10 @@ def pass_action(request, event, pk):
 def run_of_show(request, event):
     """Every session with its room, Zoom host, join link and meeting state:
     the staff/host/captioner view the old join-link doc used to be."""
+    return _run_of_show(request, event)
+
+
+def _run_of_show(request, event, *, checks=None, message=""):
     tz = event.tz
     sessions = list(
         Session.objects.filter(event=event, starts_at__isnull=False)
@@ -163,8 +167,10 @@ def run_of_show(request, event):
                 for label, op in (("meeting sync", "sync_meetings"), ("attendance pull", "pull_attendance"))
                 if (run := runs.filter(operation=op).first())
             ],
-            "message": request.GET.get("msg", ""),
+            "message": message or request.GET.get("msg", ""),
             "is_admin": has_role(request.user, event.organization, Role.ADMIN),
+            "checks": checks,
+            "existing_meetings": VirtualMeeting.objects.filter(session__event=event).count(),
         },
     )
 
@@ -172,8 +178,19 @@ def run_of_show(request, event):
 @event_view(Role.STAFF)
 @require_POST
 def zoom_action(request, event):
-    """Queue a meeting sync or an attendance pull (Django Tasks; db_worker)."""
-    if request.POST.get("action") == "attendance":
+    """Turn Zoom on/off for the event, test the setup (inline), or queue a
+    meeting sync / attendance pull (Django Tasks; needs `db_worker`)."""
+    action = request.POST.get("action")
+    if action in ("on", "off"):
+        event.virtual_meetings = action == "on"
+        event.save(update_fields=["virtual_meetings", "updated_at"])
+        msg = f"Zoom meetings turned {action} for {event.name}."
+    elif action == "test":
+        checks = test_setup(event, write_test=bool(request.POST.get("write_test")))
+        return _run_of_show(request, event, checks=checks)
+    elif not event.virtual_meetings:
+        msg = "Zoom meetings are off for this event. Turn them on first."
+    elif action == "attendance":
         pull_event_attendance.enqueue(event.pk, request.user.pk)
         msg = "Pulling attendance from Zoom. Reload in a minute to see counts."
     else:

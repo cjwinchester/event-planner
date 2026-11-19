@@ -70,8 +70,16 @@
 .drag-ghost { position: fixed; pointer-events: none; z-index: 1000; opacity: .9; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
 
 /* Side panel */
-.side-panel { width: 26rem; flex: none; border-left: 1px solid #e5e7eb; background: #fff; overflow: auto; position: relative; padding: 1rem 1rem 2rem; }
-.side-close { position: absolute; top: .4rem; right: .6rem; font-size: 1.4rem; line-height: 1; color: #6b7280; }
+.side-panel { width: 28rem; flex: none; border-left: 1px solid #e5e7eb; background: #fff; overflow: auto; position: relative; padding: 1rem 3.5rem 2rem 1rem; }
+/* Close button: lives in the panel's right gutter (padding-right), so content never runs
+   under it; sticky so it stays reachable while the panel scrolls; a full 2rem target. */
+.side-close {
+  position: sticky; top: 0; z-index: 2; float: right; margin: -.35rem -2.5rem 0 0;
+  display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .375rem;
+  font-size: 1.35rem; line-height: 1; color: #4b5563; background: #fff;
+}
+.side-close:hover { background: #f3f4f6; color: #111827; }
+.side-close:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
 .panel-kicker { font-size: .72rem; color: #6b7280; margin-right: 1.5rem; }
 .panel-title { font-weight: 600; font-size: 1.05rem; margin: .2rem 0 .6rem; }
 .panel-section { font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: #6b7280; margin: 1.1rem 0 .4rem; }

@@ -94,6 +94,7 @@ class EventAdmin(EventTimezoneMixin, OrgScopedAdmin):
             },
         ),
         ("Pitches", {"fields": ("pitch_window_opens_at", "pitch_window_closes_at", "pitch_instructions")}),
+        ("Virtual sessions", {"fields": ("virtual_meetings",)}),
         (
             "Registration",
             {"fields": ("registration_url", "details_url", "registration_connector", "additional_links")},

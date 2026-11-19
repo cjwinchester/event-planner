@@ -142,6 +142,11 @@ class Event(TimeStampedModel):
     additional_links = models.JSONField(
         default=list, blank=True, help_text='Extra public links: [{"label": "...", "url": "..."}].'
     )
+    virtual_meetings = models.BooleanField(
+        "create Zoom meetings",
+        default=False,
+        help_text="Create a meeting for each session in a room with a Zoom host. Off: Zoom is never called.",
+    )
 
     copied_from = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="copies")
 

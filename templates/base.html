@@ -24,6 +24,11 @@
       {% endif %}
     </nav>
   </header>
+  {% if messages %}
+    <div class="site-messages" role="status">
+      {% for m in messages %}<p class="site-message {{ m.tags }}">{{ m }}</p>{% endfor %}
+    </div>
+  {% endif %}
   {% block main %}{% endblock %}
 </body>
 </html>

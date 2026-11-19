@@ -19,6 +19,8 @@ joins, and unique participants. Participant names/emails are not stored.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -52,10 +54,16 @@ def _finish(run: SyncRun, stats: dict, errors: list[str]) -> SyncRun:
     return run
 
 
+def _current(event):
+    """Sessions a sync may touch: not yet over (past meetings are history)."""
+    now = timezone.now()
+    return Session.objects.filter(event=event).exclude(ends_at__lt=now).select_related("room__room", "virtual_meeting")
+
+
 def meeting_plan(event) -> dict:
     """Counts of what a sync would do (for the run-of-show page)."""
     plan = {"create": 0, "update": 0, "delete": 0, "ok": 0}
-    for s in Session.objects.filter(event=event).select_related("room__room", "virtual_meeting"):
+    for s in _current(event):
         meeting = getattr(s, "virtual_meeting", None)
         spec = meeting_spec(s)
         if meeting is None:
@@ -73,12 +81,13 @@ def sync_meetings(event, *, triggered_by=None) -> SyncRun:
     run = _run(event, "sync_meetings", triggered_by)
     stats = {"created": 0, "updated": 0, "recreated": 0, "deleted": 0, "failed": 0}
     errors: list[str] = []
+    if not event.virtual_meetings:
+        return _finish(run, stats, ["Zoom meetings are turned off for this event."])
     connector, ctx = enabled_connector(event.organization, Capability.VIRTUAL_SESSIONS, event, prefer="zoom")
     if connector is None:
         return _finish(run, stats, ["Zoom isn't connected for this organization (Admin → Integration configs)."])
     run.connector = connector.slug
-    sessions = Session.objects.filter(event=event).select_related("room__room", "virtual_meeting")
-    for s in sessions:
+    for s in _current(event):
         meeting = getattr(s, "virtual_meeting", None)
         spec = meeting_spec(s)
         if meeting is None and spec is None:
@@ -174,3 +183,50 @@ def pull_attendance(event, *, triggered_by=None, refresh: bool = False) -> SyncR
         m.save(update_fields=["participant_count", "unique_participant_count", "attendance_pulled_at", "updated_at"])
         stats["pulled"] += 1
     return _finish(run, stats, errors)
+
+
+@dataclass
+class Check:
+    label: str
+    ok: bool | None  # None = warning / not applicable
+    detail: str = ""
+
+
+def test_setup(event, *, write_test: bool = False) -> list[Check]:
+    """Check Zoom is ready for this event without touching real sessions:
+    credentials, each virtual room's host (exists, licensed, webinar add-on
+    for webinar rooms) and, if `write_test`, create + delete a throwaway
+    meeting in the first host's account to prove the app's write scopes."""
+    checks: list[Check] = []
+    connector, ctx = enabled_connector(event.organization, Capability.VIRTUAL_SESSIONS, event, prefer="zoom")
+    if connector is None:
+        return [Check("Zoom connection", False, "No enabled Zoom integration config for this organization.")]
+    status = connector.test_connection(ctx)
+    checks.append(Check("Credentials", status.ok, status.message))
+    if not status.ok:
+        return checks
+    rooms = [er.room for er in event.event_rooms.select_related("room__venue") if er.room.venue.is_virtual]
+    if not rooms:
+        checks.append(Check("Rooms", None, "This event has no virtual rooms yet (grid → Rooms)."))
+    for room in rooms:
+        if not room.host_account:
+            checks.append(Check(room.name, None, "No Zoom host set, so its sessions won't get meetings."))
+            continue
+        ok, detail = connector.check_host(ctx, host=room.host_account, kind=room.meeting_type or "meeting")
+        checks.append(Check(f"{room.name} ({room.host_account})", ok, detail))
+    if write_test:
+        host = next((r for r in rooms if r.host_account), None)
+        if host is None:
+            checks.append(Check("Test meeting", None, "Skipped: no room has a Zoom host."))
+        else:
+            kind = host.meeting_type or "meeting"
+            try:
+                info = connector.create_meeting(
+                    ctx, host=host.host_account, kind=kind, title="Event planner connection test (deleted)",
+                    starts_at=timezone.now() + timedelta(days=30), minutes=15, recorded=False,
+                )  # fmt: skip
+                connector.delete_meeting(ctx, external_id=info.external_id, kind=kind)
+                checks.append(Check("Test meeting", True, f"Created and deleted a {kind} as {host.host_account}."))
+            except ConnectorError as exc:
+                checks.append(Check("Test meeting", False, str(exc)))
+    return checks

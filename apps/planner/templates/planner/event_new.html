@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}New event · Event Planner{% endblock %}
+{% block main %}
+<main class="mx-auto max-w-3xl p-6">
+  <p><a class="text-sm text-blue-700 hover:underline" href="{% url 'planner:event-list' %}">← Your events</a></p>
+  <h1 class="mb-4 mt-2 text-xl font-semibold">New event</h1>
+
+  <form method="post" class="new-event space-y-6" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% if form.organization.is_hidden %}{{ form.organization }}{% endif %}
+
+    <section class="rounded border border-gray-200 bg-white p-4">
+      <h2 class="font-semibold">Copy from an existing event <span class="text-sm font-normal text-gray-500">(optional)</span></h2>
+      <p class="mb-2 text-sm text-gray-600">Pick last year's event to reuse its rooms, time slots and other setup. Registrations, contracts, RFPs, sponsors, speakers, pitches and attendee links are never copied.</p>
+      <label class="field">
+        <span class="sr-only">{{ form.copy_from.label }}</span>
+        {{ form.copy_from }}
+      </label>
+      {% for err in form.copy_from.errors %}<p class="panel-error">{{ err }}</p>{% endfor %}
+
+      {% if source %}
+        <p class="mt-2 text-sm text-gray-600">{{ source.name }} ran {{ source.start_date|date:"D M j" }}–{{ source.end_date|date:"D M j, Y" }} ({{ source.days|length }} day{{ source.days|length|pluralize }}). Timed items move to the same event day: its day 1 becomes the new day 1.</p>
+        <fieldset class="mt-3">
+          <legend class="text-sm font-semibold">Copy these parts</legend>
+          <div class="mb-1 flex gap-3 text-xs">
+            <button type="button" class="text-blue-700" data-check="all">Select all</button>
+            <button type="button" class="text-blue-700" data-check="none">Select none</button>
+          </div>
+          <ul class="part-list">
+            {% for choice in form.parts %}
+              <li>
+                <label>{{ choice.tag }} <strong>{{ choice.choice_label }}</strong>
+                  {% for key, n in have.items %}{% if key == choice.data.value and key != "details" %}<span class="text-xs {% if n %}text-gray-600{% else %}text-gray-400{% endif %}">({% if n %}{{ n }}{% else %}none in {{ source.short_name|default:source.name }}{% endif %})</span>{% endif %}{% endfor %}
+                </label>
+                <p class="text-xs text-gray-500">{% for key, help in form.part_help.items %}{% if key == choice.data.value %}{{ help }}{% endif %}{% endfor %}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        </fieldset>
+      {% endif %}
+    </section>
+
+    <section class="rounded border border-gray-200 bg-white p-4">
+      <h2 class="mb-3 font-semibold">The new event</h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {% if not form.organization.is_hidden %}
+          <label class="field sm:col-span-2"><span>Organization</span>{{ form.organization }}</label>
+        {% endif %}
+        <label class="field sm:col-span-2"><span>Name</span>{{ form.name }}<small>{{ form.name.help_text }}</small></label>
+        <label class="field"><span>Short name</span>{{ form.short_name }}<small>{{ form.short_name.help_text }}</small></label>
+        <label class="field"><span>Slug</span>{{ form.slug }}<small>{{ form.slug.help_text }}</small></label>
+        <label class="field"><span>Start date</span>{{ form.start_date }}</label>
+        <label class="field"><span>End date</span>{{ form.end_date }}</label>
+        <label class="field sm:col-span-2"><span>Time zone</span>{{ form.timezone }}<small>Times are entered and shown in this zone.</small></label>
+        <label class="field"><span>Type</span>{{ form.kind }}</label>
+        <label class="field"><span>Format</span>{{ form.format }}</label>
+        <label class="field"><span>Series</span>{{ form.series }}</label>
+        <label class="field"><span>{{ form.new_series.label }}</span>{{ form.new_series }}</label>
+      </div>
+      {% for f in form %}{% if f.name != "copy_from" %}{% for err in f.errors %}<p class="panel-error">{{ f.label }}: {{ err }}</p>{% endfor %}{% endif %}{% endfor %}
+    </section>
+
+    <button class="btn">Create event</button>
+  </form>
+</main>
+<script>
+  // Choosing a source reloads with its details filled in (name bumped to the next year).
+  const pick = document.getElementById("id_copy_from");
+  pick?.addEventListener("change", () => {
+    const url = new URL(location.href);
+    if (pick.value) url.searchParams.set("copy_from", pick.value); else url.searchParams.delete("copy_from");
+    location.href = url;
+  });
+  document.querySelectorAll("[data-check]").forEach((b) => b.addEventListener("click", () => {
+    for (const box of document.querySelectorAll('input[name="parts"]')) box.checked = b.dataset.check === "all";
+  }));
+  // Slug follows the name until someone edits the slug by hand.
+  const name = document.getElementById("id_name"), slug = document.getElementById("id_slug");
+  let slugTouched = Boolean(slug.value);
+  slug.addEventListener("input", () => { slugTouched = true; });
+  name.addEventListener("input", () => {
+    if (!slugTouched) slug.value = name.value.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/[\s_]+/g, "-");
+  });
+</script>
+{% endblock %}

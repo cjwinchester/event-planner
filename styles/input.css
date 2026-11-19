@@ -41,3 +41,15 @@
   .auth-messages { @apply mb-4 rounded bg-blue-50 px-3 py-2 text-sm text-blue-800; }
   .auth-links { @apply mt-6 flex flex-wrap gap-4 border-t border-gray-100 pt-4 text-sm; }
 }
+
+/* Flash messages (django.contrib.messages) under the header */
+.site-messages { @apply mx-auto max-w-6xl px-6 pt-3; }
+.site-message { @apply mb-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900; }
+.site-message.warning { @apply border-amber-200 bg-amber-50 text-amber-900; }
+.site-message.error { @apply border-red-200 bg-red-50 text-red-900; }
+
+/* New event form */
+.new-event .field > small { @apply mt-1 block text-xs text-gray-500; }
+.part-list { @apply mt-1 grid gap-2 sm:grid-cols-2; }
+.part-list li { @apply rounded border border-gray-200 p-2; }
+.part-list label { @apply flex items-center gap-2 text-sm; }

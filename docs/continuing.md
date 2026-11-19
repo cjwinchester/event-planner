@@ -32,6 +32,14 @@ concession tracking (admin + API).
 
 Browser tests use Playwright.
 
+**New event** (`/plan/new/`, "+ New event" on the dashboard; staff): optionally copy from an
+existing event, ticking parts (`events.copying.PARTS`): details & settings, venues & rooms,
+time slots, tracks, recurring (stock) sessions, logistics, pitch/speaker form questions,
+sponsorship levels & exhibitor packages. Timed items move by event day (day 1 → day 1, same
+local time); logistics are re-placed via `place_logistics_item`. Registrations, contracts,
+RFPs, sponsorships, speakers, pitches and passes are never copied. Picking a source suggests
+the next edition's name/slug ("NICAR 2026" → "NICAR 2027").
+
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
   columns. An org's virtual rooms (one per Zoom user, e.g. Zoom Room 0–5 + Zoom Webinar)
@@ -93,8 +101,11 @@ clean.
 
 - **Zoom go-live checklist** (needs the account Owner): create a Server-to-Server OAuth app
   with the scopes listed in `connectors/zoom/client.py`; add an org IntegrationConfig
-  (connector `zoom`); set each Zoom room's host email in the Rooms panel; run "Create / update
-  meetings" on a test event and check one meeting in Zoom (passcode/waiting room come from
+  (connector `zoom`) and use **Save and test connection** on its admin page; set each Zoom
+  room's host email in the Rooms panel; on Run of show, **Test Zoom setup** (checks each
+  host is a licensed user, webinar rooms have webinars, and optionally creates + deletes a
+  throwaway meeting); turn Zoom **on for the event** (off by default; ended sessions are
+  never changed); run "Create / update meetings" on a test event and check one meeting in Zoom (passcode/waiting room come from
   the account defaults unless `options.meeting_settings` overrides them).
 - **Email from the app** (attendee links now go out by CSV + mail merge): send passes on
   issue and automatically to people who register later; needs a mail provider.
