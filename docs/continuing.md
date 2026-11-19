@@ -40,15 +40,15 @@ local time); logistics are re-placed via `place_logistics_item`. Registrations, 
 RFPs, sponsorships, speakers, pitches and passes are never copied. Picking a source suggests
 the next edition's name/slug ("NICAR 2026" → "NICAR 2027").
 
-**Speaker portal, part A** (`/speak/`, `apps.portal`): login by emailed one-time code (allauth
+**Speaker portal, part A** (`/portal/`, `apps.portal`): login by emailed one-time code (allauth
 `ACCOUNT_LOGIN_BY_CODE_ENABLED`; signup password optional, staff passwords unchanged) or
-Google; `/` routes staff to `/plan/` and everyone else to `/speak/`. On every login the user
+Google; `/` routes staff to `/plan/` and everyone else to `/portal/`. On every login the user
 is linked to unclaimed speaker profiles by **verified** email and duplicates are merged into
 the most recent (`speakers.merging`: links moved, blanks filled, unique collisions absorbed,
 speaker revocations win). Pages: overview with the public card, profile edit (public vs
 private fields, headshot, links), sharing (grant/turn off per org). Imported profiles have no
 email, so they're only claimable once staff add one (name-based claiming: open question).
-**Part B** (`/speak/sessions/`): each session role with event-local time/room (only once the
+**Part B** (`/portal/sessions/`): each session role with event-local time/room (only once the
 schedule is published), co-speakers, confirm ("only confirmed speakers are published";
 existing/imported rows were confirmed by migration), withdraw (always allowed; removes the
 role), edit title/summary/description until `Event.speaker_edit_deadline` (blank = staff
@@ -57,7 +57,7 @@ Staff: **Speaker updates** page (before/after diffs, mark reviewed, set the dead
 unconfirmed speakers) and "mark confirmed" in the grid's session panel.
 Email: one Google Workspace account via SMTP + app password (`EMAIL_HOST_USER`,
 `EMAIL_HOST_PASSWORD`; console when unset); site name "Event Planner" in emails.
-**Part C**: public **Open calls** (`/speak/calls/`, events with an open pitch window, not
+**Part C**: public **Open calls** (`/portal/calls/`, events with an open pitch window, not
 private); pitch to one or several events with each event's questions and co-speakers (by
 name + email; found or created, never auto-shared); **Pitches** with the speaker-visible
 status (`pitches.services.speaker_status`: "Under review" until finalized; "Combined with a
@@ -65,6 +65,14 @@ similar pitch" once the pitch it joined is decided). The submitter edits while e
 **pitch window** is open and nothing is decided (separate from the session
 `speaker_edit_deadline`), withdraws per event before a decision, and confirms acceptances;
 co-speakers get a read-only view once they have an account.
+
+**Company portal, part (a)** (`apps.portal.company_views`): one portal for everyone at
+`/portal/`; the menu shows each company the user is a contact for, next to speaking. Staff add
+a `CompanyContact` (name + email); the person logs in with that verified email and is linked
+(`commerce.claiming.claim_contacts`, also on demand). Contacts with `can_manage` edit the
+shared company profile (name, website, description, logo) and add/remove colleagues, grant
+or revoke manage rights, set the primary contact (the last manager can't leave). A person can
+be a speaker and a contact for several companies at once.
 
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's

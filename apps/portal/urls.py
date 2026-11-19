@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import company_views, views
 
 app_name = "portal"
 urlpatterns = [
@@ -17,4 +17,12 @@ urlpatterns = [
     path("pitches/new/", views.pitch_new, name="pitch-new"),
     path("pitches/<int:pk>/", views.pitch_detail, name="pitch"),
     path("pitches/<int:pk>/edit/", views.pitch_edit, name="pitch-edit"),
+    path("companies/<slug:slug>/", company_views.company, name="company"),
+    path("companies/<slug:slug>/edit/", company_views.company_edit, name="company-edit"),
+    path("companies/<slug:slug>/contacts/", company_views.company_contacts, name="company-contacts"),
+    path(
+        "companies/<slug:slug>/contacts/<int:pk>/",
+        company_views.company_contact_update,
+        name="company-contact-update",
+    ),
 ]

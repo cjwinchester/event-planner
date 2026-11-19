@@ -1,0 +1,16 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ company.name }}{% endblock %}
+{% block main %}
+{% include "portal/_company_nav.html" %}
+<h1>{{ company.name }}</h1>
+<div class="speaker-card">
+  {% if company.logo_href %}<img class="logo" src="{{ company.logo_href }}" alt="{{ company.name }} logo" width="96" height="96">{% else %}<div class="headshot-empty" aria-hidden="true">{{ company.name|first }}</div>{% endif %}
+  <div>
+    {% if company.website %}<p><a href="{{ company.website }}" rel="noopener">{{ company.website }}</a></p>{% endif %}
+    {% if company.description %}<p class="bio">{{ company.description|linebreaksbr }}</p>{% else %}<p class="hint">No public description yet.{% if me.can_manage %} <a href="{% url 'portal:company-edit' company.slug %}">Add one</a>.{% endif %}</p>{% endif %}
+  </div>
+</div>
+{% block deals %}
+  {% include "portal/_company_deals.html" %}
+{% endblock %}
+{% endblock %}

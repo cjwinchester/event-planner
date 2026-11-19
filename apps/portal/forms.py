@@ -195,3 +195,53 @@ class CoSpeakerForm(forms.Form):
 
 
 CoSpeakerFormSet = forms.formset_factory(CoSpeakerForm, extra=3, max_num=8)
+
+
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        from apps.commerce.models import Company
+
+        model = Company
+        fields = ["name", "website", "description", "logo"]
+        labels = {"description": "Public description"}
+        help_texts = {
+            "description": "Shown on published sponsor and exhibitor lists for every event you take part in.",
+            "logo": "PNG or SVG with a transparent background works best.",
+        }
+        widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if name != "logo":
+                field.widget.attrs.setdefault("class", "input")
+
+    def clean_logo(self):
+        image = self.cleaned_data.get("logo")
+        if image and hasattr(image, "size") and image.size > MAX_HEADSHOT_MB * 1024 * 1024:
+            raise forms.ValidationError(f"Please upload an image under {MAX_HEADSHOT_MB} MB.")
+        return image
+
+
+class ContactForm(forms.ModelForm):
+    class Meta:
+        from apps.commerce.models import CompanyContact
+
+        model = CompanyContact
+        fields = ["name", "email", "title", "phone", "can_manage"]
+        labels = {"can_manage": "Can manage the company (edit profile, add colleagues)"}
+
+    def __init__(self, *args, company=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company = company
+        self.fields["email"].required = True
+        self.fields["can_manage"].initial = False
+        for name, field in self.fields.items():
+            if name != "can_manage":
+                field.widget.attrs.setdefault("class", "input")
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip()
+        if self.company and self.company.contacts.filter(email__iexact=email).exists():
+            raise forms.ValidationError("That person is already a contact.")
+        return email

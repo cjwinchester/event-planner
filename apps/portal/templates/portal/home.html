@@ -1,22 +1,36 @@
 {% extends "portal/base.html" %}
 {% block title %}Overview{% endblock %}
 {% block main %}
-<h1>Hi, {{ profile.first_name|default:"there" }}</h1>
-{% if missing %}
-  <p class="notice">Your profile is missing {{ missing|join:", " }}. <a href="{% url 'portal:profile' %}">Complete your profile</a> so organizers can use it in schedules.</p>
+<h1>Hi{% if profile.first_name %}, {{ profile.first_name }}{% endif %}</h1>
+
+{% if my_companies %}
+  <section aria-labelledby="co-h">
+    <h2 id="co-h">Your companies</h2>
+    <ul class="company-list">
+      {% for c in my_companies %}
+        <li><a href="{% url 'portal:company' c.slug %}">{% if c.logo_href %}<img src="{{ c.logo_href }}" alt="" width="40" height="40">{% endif %}<span>{{ c.name }}</span></a></li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endif %}
-<section aria-labelledby="public-h">
-  <h2 id="public-h">How you appear in schedules</h2>
-  {% include "portal/_card.html" %}
-  <p><a href="{% url 'portal:profile' %}">Edit profile</a></p>
-</section>
-<section aria-labelledby="share-h">
-  <h2 id="share-h">Who can see your contact details</h2>
-  {% if active_grants %}
-    <p>{% for g in active_grants %}{{ g.organization.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+
+<section aria-labelledby="speak-h">
+  <h2 id="speak-h">Speaking</h2>
+  {% if profile %}
+    {% if missing %}
+      <p class="notice">Your speaker profile is missing {{ missing|join:", " }}. <a href="{% url 'portal:profile' %}">Complete your profile</a> so organizers can use it in schedules.</p>
+    {% endif %}
+    <h3 class="sub">How you appear in schedules</h3>
+    {% include "portal/_card.html" %}
+    <p><a href="{% url 'portal:profile' %}">Edit profile</a> · <a href="{% url 'portal:sessions' %}">Your sessions</a> · <a href="{% url 'portal:pitches' %}">Your pitches</a></p>
+    <h3 class="sub">Who can see your contact details</h3>
+    {% if active_grants %}
+      <p>{% for g in active_grants %}{{ g.organization.name }}{% if not forloop.last %}, {% endif %}{% endfor %}. <a href="{% url 'portal:sharing' %}">Manage sharing</a></p>
+    {% else %}
+      <p>No organization can see your email, phone or location. <a href="{% url 'portal:sharing' %}">Manage sharing</a></p>
+    {% endif %}
   {% else %}
-    <p>No organization can see your email, phone or location.</p>
+    <p>Want to speak at an event? <a href="{% url 'portal:calls' %}">See open calls</a> or <a href="{% url 'portal:profile' %}">create a speaker profile</a>.</p>
   {% endif %}
-  <p><a href="{% url 'portal:sharing' %}">Manage sharing</a></p>
 </section>
 {% endblock %}

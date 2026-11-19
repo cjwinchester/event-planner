@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Speaker portal{% endblock %} · Event Planner</title>
+  <title>{% block title %}Your portal{% endblock %} · Event Planner</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/portal.css' %}">
 </head>
 <body class="portal">
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="portal-header">
-    <a class="portal-brand" href="{% url 'portal:home' %}">Speaker portal</a>
+    <a class="portal-brand" href="{% url 'portal:home' %}">Event Planner</a>
     {% url 'portal:home' as home_url %}{% url 'portal:profile' as profile_url %}{% url 'portal:sharing' as sharing_url %}{% url 'portal:sessions' as sessions_url %}{% url 'portal:pitches' as pitches_url %}{% url 'portal:calls' as calls_url %}
-    <nav aria-label="Speaker portal">
+    <nav aria-label="Your portal">
       <a href="{{ home_url }}" {% if request.path == home_url %}aria-current="page"{% endif %}>Overview</a>
+      {% for c in my_companies %}{% url 'portal:company' c.slug as c_url %}<a href="{{ c_url }}" {% if c_url in request.path %}aria-current="page"{% endif %}>{{ c.name }}</a>{% endfor %}
+      <span class="nav-sep" aria-hidden="true"></span>
       <a href="{{ calls_url }}" {% if request.path == calls_url %}aria-current="page"{% endif %}>Open calls</a>
       <a href="{{ pitches_url }}" {% if request.path == pitches_url %}aria-current="page"{% endif %}>Pitches</a>
       <a href="{{ sessions_url }}" {% if request.path == sessions_url %}aria-current="page"{% endif %}>Sessions</a>

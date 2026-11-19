@@ -63,3 +63,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .targets { margin: .3rem 0 0; }
 .targets li { margin: .2rem 0; }
 .instructions { color: #374151; }
+.nav-sep { width: 1px; background: #e5e7eb; margin: 0 .35rem; }
+.company-list { display: flex; flex-wrap: wrap; gap: .75rem; }
+.company-list a { display: flex; align-items: center; gap: .6rem; background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: .5rem .8rem; text-decoration: none !important; color: #111827 !important; font-weight: 600; }
+.company-list img, .speaker-card img.logo { object-fit: contain; border-radius: .25rem; background: #fff; }
+.speaker-card img.logo { border-radius: .5rem; }
+h3.sub { font-size: 1rem; font-weight: 650; margin: 1rem 0 .4rem; }
+.crumbs { font-size: .9rem; color: #4b5563; }
+.row-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.row-actions button { color: #1d4ed8; text-decoration: underline; font-size: .88rem; }

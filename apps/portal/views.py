@@ -52,29 +52,38 @@ def _profile(request) -> SpeakerProfile | None:
 
 
 def _ctx(request, **extra):
-    return {"is_staff_member": bool(organization_ids_for(request.user)), **extra}
+    companies = []
+    if request.user.is_authenticated:
+        from apps.commerce.claiming import my_contacts
+
+        companies = [c.company for c in my_contacts(request.user)]
+    return {"is_staff_member": bool(organization_ids_for(request.user)), "my_companies": companies, **extra}
 
 
 @login_required
 def portal_home(request):
+    """Everything this person does with us: speaking (if they have a speaker
+    profile) and each company they're a contact for. Either can be empty."""
+    from apps.commerce.claiming import claim_contacts
+
     profile = _profile(request)
-    if profile is None:
-        return redirect("portal:profile")
-    grants = profile.share_grants.select_related("organization")
-    missing = [label for f, label in (("bio", "a bio"), ("affiliation", "your affiliation")) if not getattr(profile, f)]
-    if not profile.headshot_href:
-        missing.append("a headshot")
-    return render(
-        request,
-        "portal/home.html",
-        _ctx(
-            request,
-            profile=profile,
+    claim_contacts(request.user)
+    ctx = _ctx(request, profile=profile)
+    if profile is None and not ctx["my_companies"]:
+        return redirect("portal:profile")  # a brand-new account: start with a speaker profile
+    if profile is not None:
+        grants = profile.share_grants.select_related("organization")
+        missing = [
+            label for f, label in (("bio", "a bio"), ("affiliation", "your affiliation")) if not getattr(profile, f)
+        ]
+        if not profile.headshot_href:
+            missing.append("a headshot")
+        ctx.update(
             public=sharing.visible_profile(profile),
             active_grants=[g for g in grants if g.is_active],
             missing=missing,
-        ),
-    )
+        )
+    return render(request, "portal/home.html", ctx)
 
 
 @login_required

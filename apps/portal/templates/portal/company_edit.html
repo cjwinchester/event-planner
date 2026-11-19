@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}
+{% block title %}Edit {{ company.name }}{% endblock %}
+{% block main %}
+{% include "portal/_company_nav.html" %}
+<h1>Edit company profile</h1>
+<p class="hint">This profile is shared by every organization you sponsor or exhibit with.</p>
+<form method="post" enctype="multipart/form-data" class="portal-form" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <fieldset>
+    {% include "portal/_field.html" with field=form.name %}
+    {% include "portal/_field.html" with field=form.website %}
+    {% include "portal/_field.html" with field=form.description %}
+    {% include "portal/_field.html" with field=form.logo %}
+  </fieldset>
+  <button class="btn">Save</button>
+  <a href="{% url 'portal:company' company.slug %}">Cancel</a>
+</form>
+{% endblock %}
