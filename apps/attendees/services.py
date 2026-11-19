@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from apps.events.models import Registration
 from apps.program.models import Session, SessionSpeaker, join_url_for
-from apps.publishing.bundle import Audience, build_event_bundle
+from apps.publishing.cache import public_bundle
 from apps.speakers import sharing
 
 from .models import AttendeePass
@@ -80,7 +80,7 @@ def device_hash(request) -> str:
 def pass_bundle(p: AttendeePass, request) -> dict:
     """The *public* bundle (so the page shows exactly what's published) with
     each session's live_url pointed at this pass's join redirect."""
-    bundle = build_event_bundle(p.event, Audience.PUBLIC)
+    bundle = public_bundle(p.event)  # cached; a fresh copy we may personalize
     ids = [s["id"] for s in bundle["sessions"]]
     rows = Session.objects.filter(event=p.event, public_id__in=ids).select_related("room__room", "virtual_meeting")
     linked = {s.public_id for s in rows if join_url_for(s)}

@@ -18,7 +18,7 @@ from django.utils.cache import patch_cache_control
 
 from apps.events.models import Event
 
-from .bundle import Audience, build_event_bundle
+from .cache import cached_render, public_bundle
 from .exporters import ExportContext, get_exporter
 from .exporters.ics import build_calendar
 
@@ -45,21 +45,27 @@ def _host():
 
 
 def bundle_json(request, org_slug, event_slug):
-    bundle = build_event_bundle(_event(org_slug, event_slug), Audience.PUBLIC)
+    bundle = public_bundle(_event(org_slug, event_slug))
     return _cached(JsonResponse(bundle, json_dumps_params={"ensure_ascii": False}))
 
 
 def schedule_format(request, org_slug, event_slug, fmt):
     if fmt not in {"csv", "txt", "pdf", "schedule_ui", "ics"}:
         raise Http404
-    bundle = build_event_bundle(_event(org_slug, event_slug), Audience.PUBLIC)
-    files = get_exporter(fmt).render(bundle, ExportContext(calendar_host=_host()))
-    main = files[0]
-    return _cached(HttpResponse(main.content, content_type=main.content_type))
+    event = _event(org_slug, event_slug)
+    exporter = get_exporter(fmt)
+
+    def render(bundle):
+        main = exporter.render(bundle, ExportContext(calendar_host=_host()))[0]
+        return main.content, main.content_type
+
+    # Rendered once per schedule version (the PDF in particular is expensive).
+    content, content_type = cached_render(event, fmt, render)
+    return _cached(HttpResponse(content, content_type=content_type))
 
 
 def track_ics(request, org_slug, event_slug, track_slug):
-    bundle = build_event_bundle(_event(org_slug, event_slug), Audience.PUBLIC)
+    bundle = public_bundle(_event(org_slug, event_slug))
     track = next((t for t in bundle["tracks"] if t["id"] == track_slug), None)
     if track is None:
         raise Http404
@@ -69,7 +75,7 @@ def track_ics(request, org_slug, event_slug, track_slug):
 
 
 def session_ics(request, org_slug, event_slug, session_id: int):
-    bundle = build_event_bundle(_event(org_slug, event_slug), Audience.PUBLIC)
+    bundle = public_bundle(_event(org_slug, event_slug))
     sessions = [s for s in bundle["sessions"] if s["id"] == session_id]
     if not sessions:
         raise Http404
