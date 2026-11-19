@@ -1,7 +1,10 @@
 from django.contrib import admin
 
 from apps.core.admin import OrgScopedAdmin, OrgScopedInline, SharedDirectoryAdmin, SharedDirectoryInline
+from apps.organizations.models import Membership
+from apps.organizations.permissions import organization_ids_for
 
+from .access import can_edit_company
 from .models import (
     Company,
     CompanyContact,
@@ -16,8 +19,23 @@ from .models import (
 
 
 class CompanyContactInline(SharedDirectoryInline, admin.TabularInline):
+    """Read-only for staff. Adding a contact grants portal access to deals, which
+    must be scoped to the adding organization: staff use the planner's Sponsors &
+    exhibitors page (commerce.access.add_contact_for_org); superusers may edit here."""
+
     model = CompanyContact
     extra = 0
+    fields = ["name", "email", "title", "can_manage", "company_wide", "organizations", "user", "invited_at"]
+    readonly_fields = ["user", "invited_at"]
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser if obj is not None else super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
 
 
 @admin.register(Company)
@@ -27,6 +45,13 @@ class CompanyAdmin(SharedDirectoryAdmin):
     prepopulated_fields = {"slug": ["name"]}
     inlines = [CompanyContactInline]
     readonly_fields = ["created_by_organization"]
+
+    def has_change_permission(self, request, obj=None):
+        # Once the company has a company-wide manager, its profile is the company's.
+        if obj is None:
+            return super().has_change_permission(request, obj)
+        orgs = organization_ids_for(request.user, Membership.Role.STAFF)
+        return super().has_change_permission(request, obj) and can_edit_company(request.user, obj, orgs)
 
 
 @admin.register(SponsorshipLevel)

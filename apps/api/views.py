@@ -15,6 +15,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.response import Response
 
 from apps.assistant.llm import LLMNotConfigured, QueryService
+from apps.commerce import access as company_access
 from apps.commerce.models import Company, ExhibitorBooking, Sponsorship
 from apps.core.models import SHARED_VISIBILITIES
 from apps.events.models import Concession, Event, EventRoom, EventSeries, VenueRFP
@@ -474,6 +475,13 @@ class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = s.CompanySerializer
     permission_classes = [SharedDirectoryPermission]
     search_fields = ["name"]
+
+    def perform_update(self, serializer):
+        # commerce.access: a claimed company's shared profile belongs to the company.
+        orgs = organization_ids_for(self.request.user, Role.STAFF)
+        if not company_access.can_edit_company(self.request.user, serializer.instance, orgs):
+            raise PermissionDenied("This company manages its own profile.")
+        serializer.save()
 
 
 class SponsorshipViewSet(OrgScopedViewSet):

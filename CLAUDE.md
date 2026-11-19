@@ -34,6 +34,9 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
 - **Schedules show per-event copies**: speaker affiliation/title/bio/headshot come from `EventSpeaker`, company
   name/description/website/logo from the deal (`CompanyListing` on `Sponsorship`/`ExhibitorBooking`), copied from
   the shared record when created. Never read those from the shared profile in exports. Names and pronouns stay live.
+- **Company access** goes through `commerce.access`: members see no deals; managers see deals for the orgs in
+  their scope (all if `company_wide`); an org only ever adds itself to someone's scope
+  (`add_contact_for_org`). Only company-wide managers (or orgs, while unclaimed) edit the shared company profile.
 - **Shared speaker profiles**: edits go through `speakers.permissions` (a claimed profile is the speaker's;
   an unclaimed one's email only by the creating org, since the email decides who can claim it).
 - **Public reads use the cache**: feeds and pass pages call `publishing.cache.public_bundle` (deep copy; never

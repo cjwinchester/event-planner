@@ -48,7 +48,18 @@ class Company(TimeStampedModel):
 
 
 class CompanyContact(TimeStampedModel):
-    """A person at a company; with `user` set they can use the portal."""
+    """A person at a company; with `user` set they can use the portal.
+
+    Access (commerce.access):
+      * members (`can_manage` False) are attached to the company but see none of
+        its deals (the intern at the booth);
+      * managers see deals with the organizations in `organizations`, or every
+        deal if `company_wide`. An organization adding someone only ever adds
+        itself to that scope, so it can't expose another org's deals with the
+        same company; only a company-wide manager grants company-wide access
+        (and the first manager is company-wide only if the company has no deals
+        with other organizations at that moment).
+    """
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="contacts")
     user = models.ForeignKey(
@@ -59,7 +70,18 @@ class CompanyContact(TimeStampedModel):
     phone = models.CharField(max_length=64, blank=True)
     title = models.CharField(max_length=255, blank=True)
     is_primary = models.BooleanField(default=False)
-    can_manage = models.BooleanField(default=True, help_text="May edit the company profile and tickets.")
+    can_manage = models.BooleanField(
+        "manager", default=True, help_text="Managers see deals (within their scope); members see none."
+    )
+    company_wide = models.BooleanField(
+        default=False, help_text="Sees the company's deals with every organization; edits the shared company profile."
+    )
+    organizations = models.ManyToManyField(
+        "organizations.Organization",
+        blank=True,
+        related_name="company_contacts",
+        help_text="Organizations whose deals this manager sees (when not company-wide).",
+    )
     invited_at = models.DateTimeField(null=True, blank=True, help_text="Last portal invite email sent.")
 
     class Meta:

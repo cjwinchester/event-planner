@@ -9,13 +9,13 @@ from datetime import datetime
 
 from django import forms
 from django.contrib import messages
-from django.db.models.functions import Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.commerce import portal as company_portal
+from apps.commerce.access import add_contact_for_org
 from apps.commerce.invites import send_invite
 from apps.commerce.models import Company, CompanyContact, ExhibitorBooking, Sponsorship, SponsorshipDeliverable
 from apps.pitches.models import FormQuestion
@@ -26,7 +26,7 @@ from .access import Role, event_view
 class ContactForm(forms.Form):
     name = forms.CharField(max_length=255, widget=forms.TextInput(attrs={"class": "input", "placeholder": "Name"}))
     email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "input", "placeholder": "Email"}))
-    can_manage = forms.BooleanField(required=False, initial=True, label="Can manage")
+    can_manage = forms.BooleanField(required=False, initial=True, label="Manager")
 
 
 class DeliverableForm(forms.Form):
@@ -109,17 +109,17 @@ def sponsors_action(request, event):
         form = ContactForm(request.POST)
         if not form.is_valid():
             messages.error(request, "Give the contact a name and a valid email.")
-        elif company.contacts.annotate(e=Lower("email")).filter(e=form.cleaned_data["email"].lower()).exists():
-            messages.error(request, f"{form.cleaned_data['email']} is already a contact for {company.name}.")
         else:
-            CompanyContact.objects.create(
-                company=company,
+            contact = add_contact_for_org(
+                company,
+                event.organization,
                 name=form.cleaned_data["name"],
                 email=form.cleaned_data["email"],
-                can_manage=form.cleaned_data["can_manage"],
-                is_primary=not company.contacts.exists(),
+                manager=form.cleaned_data["can_manage"],
             )
-            messages.success(request, f"Added {form.cleaned_data['name']} to {company.name}.")
+            scope = "company-wide" if contact.company_wide else f"{event.organization.name}'s deals only"
+            role = f"a manager ({scope})" if contact.can_manage else "a member (no deal access)"
+            messages.success(request, f"Added {contact.name} to {company.name} as {role}.")
     elif action == "invite":
         contact = get_object_or_404(CompanyContact, pk=request.POST.get("contact"))
         _event_company(event, contact.company_id)

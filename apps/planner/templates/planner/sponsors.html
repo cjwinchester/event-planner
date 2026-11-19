@@ -87,7 +87,8 @@
           <li class="flex flex-wrap items-center gap-2">
             <span>{{ ct.name }}{% if ct.is_primary %} <span class="badge">primary</span>{% endif %}</span>
             <span class="text-gray-600">{{ ct.email|default:"no email" }}</span>
-            <span class="text-xs {% if ct.user_id %}text-green-700{% else %}text-gray-500{% endif %}">{% if ct.user_id %}using the portal{% elif ct.invited_at %}invited {{ ct.invited_at|date:"M j" }}{% else %}not invited{% endif %}{% if not ct.can_manage %} · view only{% endif %}</span>
+            <span class="text-xs text-gray-600">{% if not ct.can_manage %}member{% elif ct.company_wide %}manager, company-wide{% else %}manager{% endif %}</span>
+            <span class="text-xs {% if ct.user_id %}text-green-700{% else %}text-gray-500{% endif %}">{% if ct.user_id %}using the portal{% elif ct.invited_at %}invited {{ ct.invited_at|date:"M j" }}{% else %}not invited{% endif %}</span>
             {% if ct.email and not ct.user_id %}
               <form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<input type="hidden" name="action" value="invite"><input type="hidden" name="contact" value="{{ ct.pk }}">
                 <button class="text-xs text-blue-700">{% if ct.invited_at %}resend invite{% else %}send invite{% endif %}</button></form>

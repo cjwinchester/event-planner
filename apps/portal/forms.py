@@ -230,15 +230,21 @@ class ContactForm(forms.ModelForm):
 
         model = CompanyContact
         fields = ["name", "email", "title", "phone", "can_manage"]
-        labels = {"can_manage": "Can manage the company (edit profile, add colleagues)"}
+        labels = {"can_manage": "Manager (sees deals, invoices and deliverables; adds colleagues)"}
 
-    def __init__(self, *args, company=None, **kwargs):
+    company_wide = forms.BooleanField(
+        required=False, label="Company-wide (sees deals with every organization; edits the company profile)"
+    )
+
+    def __init__(self, *args, company=None, allow_company_wide=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.company = company
+        if not allow_company_wide:
+            del self.fields["company_wide"]
         self.fields["email"].required = True
         self.fields["can_manage"].initial = False
         for name, field in self.fields.items():
-            if name != "can_manage":
+            if name not in ("can_manage", "company_wide"):
                 field.widget.attrs.setdefault("class", "input")
 
     def clean_email(self):

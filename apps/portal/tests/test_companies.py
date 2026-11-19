@@ -15,7 +15,9 @@ def account(django_user_model, email, verified=True):
 @pytest.fixture
 def acme(db):
     company = Company.objects.create(name="Acme Data", slug="acme-data")
-    CompanyContact.objects.create(company=company, name="Dana Lead", email="Dana@Acme.example", can_manage=True)
+    CompanyContact.objects.create(
+        company=company, name="Dana Lead", email="Dana@Acme.example", can_manage=True, company_wide=True
+    )
     CompanyContact.objects.create(company=company, name="Viv Viewer", email="viv@acme.example", can_manage=False)
     return company
 
@@ -77,7 +79,11 @@ class TestCompanyAccess:
         client.post(update, {"action": "remove"})
         assert acme.contacts.filter(pk=dana.pk).exists()
         viv = acme.contacts.get(name="Viv Viewer")
-        client.post(reverse("portal:company-contact-update", args=["acme-data", viv.pk]), {"action": "grant_manage"})
+        viv_update = reverse("portal:company-contact-update", args=["acme-data", viv.pk])
+        client.post(viv_update, {"action": "grant_manage"})
+        client.post(update, {"action": "remove"})
+        assert acme.contacts.filter(pk=dana.pk).exists()  # still the only company-wide manager
+        client.post(viv_update, {"action": "make_company_wide"})
         resp = client.post(update, {"action": "remove"})
         assert resp["Location"] == reverse("portal:home") and not acme.contacts.filter(pk=dana.pk).exists()
 
@@ -120,13 +126,12 @@ def deals(world, acme):
 class TestCompanyDeals:
     def test_overview_hides_prospects_and_labels_status(self, client, deals, django_user_model):
         _world, sp, _booth, _ = deals
-        client.force_login(account(django_user_model, "viv@acme.example"))
+        client.force_login(account(django_user_model, "dana@acme.example"))
         body = client.get(reverse("portal:company", args=["acme-data"])).content.decode()
         assert "Gold sponsorship" in body and "Confirmed" in body and "1 item to send" in body
         assert "Nonprofit table" in body and "99999" not in body
         page = client.get(reverse("portal:sponsorship", args=["acme-data", sp.pk])).content.decode()
         assert "Logo on site" in page and "https://pay.example/inv1" in page and "$1.00" not in page  # drafts hidden
-        assert "Only contacts who can manage" in page
 
     def test_upload_deliverable(self, client, deals, django_user_model):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -139,7 +144,7 @@ class TestCompanyDeals:
         item.refresh_from_db()
         assert item.status == "received" and item.file.name.endswith(".svg")
 
-    def test_view_only_contact_cannot_upload(self, client, deals, django_user_model):
+    def test_members_see_no_deals(self, client, deals, django_user_model):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         _world, sp, *_ = deals
@@ -147,7 +152,10 @@ class TestCompanyDeals:
         item = sp.deliverables.get()
         url = reverse("portal:sponsorship", args=["acme-data", sp.pk])
         resp = client.post(url, {"deliverable": item.pk, "file": SimpleUploadedFile("x.png", b"x")})
-        assert resp.status_code == 403
+        assert resp.status_code == 404  # members can't reach deals at all
+        body = client.get(reverse("portal:company", args=["acme-data"])).content.decode()
+        assert "You're on the Acme Data team" in body and "Gold sponsorship" not in body
+        assert client.get(reverse("portal:company-contacts", args=["acme-data"])).status_code == 403
 
     def test_exhibitor_answers_until_deadline(self, client, deals, django_user_model):
         from datetime import timedelta

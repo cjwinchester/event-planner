@@ -164,13 +164,15 @@ per-row API queries and bulk link issuing (#6), merges keeping pitch co-speaker 
 (#7), deliverable upload type/size limits (#8), copied events start unpublished (#9),
 advisory lock on Zoom meeting sync (#10), due-date wording (#11), Zoom path encoding (#12).
 
+#2 (cross-org company deal visibility) fixed with company roles (`commerce.access`): members
+see no deals (the intern at the booth); managers see deals for the organizations in their
+scope, which an organization can only ever add itself to; company-wide managers see all deals
+and edit the shared company profile; the first manager is company-wide only if the company
+has no deals with other organizations at that moment. Once a company has a company-wide
+manager, organizations can't edit its shared profile (admin, API). The admin's contact inline
+is read-only for staff; contacts are added from the planner's Sponsors & exhibitors page.
+
 Open:
-- **#2 cross-org company deal visibility**: any org's staff can add a contact to any company
-  (admin inline), and a contact's portal shows the company's deals with *every* org. Owner's
-  model (2026-11-19): shared profile fields visible to orgs a speaker/company works with;
-  per-event data (invoices, exhibitor setup) private between that org and the company.
-  Proposed: contacts carry who added them; org-added contacts see only that org's events;
-  company-managed contacts see all of their company's deals.
 - Shared directories (venues, companies, public speaker fields) have no edit history.
 - Deliverable files live in public storage (no signed URLs).
 

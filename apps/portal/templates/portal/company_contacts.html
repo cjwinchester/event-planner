@@ -1,46 +1,50 @@
 {% extends "portal/base.html" %}
-{% block title %}{{ company.name }} contacts{% endblock %}
+{% block title %}{{ company.name }} people{% endblock %}
 {% block main %}
 {% include "portal/_company_nav.html" %}
-<h1>Contacts at {{ company.name }}</h1>
-<p>People who can see this company in their portal. Each logs in with their own email.</p>
+<h1>People at {{ company.name }}</h1>
+<p><strong>Managers</strong> see sponsorships, booths, invoices and deliverables, and add colleagues. <strong>Company-wide</strong> managers see the company's deals with every organization and edit the company profile; other managers see the organizations listed with them. <strong>Members</strong> are on the team but see no deals.</p>
 <table class="portal-table">
-  <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Access</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+  <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
   <tbody>
-  {% for c in contacts %}
+  {% for row in rows %}{% with c=row.c %}
     <tr>
       <td>{{ c.name }}{% if c.is_primary %} <span class="tag">Primary</span>{% endif %}{% if c.title %}<br><span class="hint">{{ c.title }}</span>{% endif %}</td>
       <td>{{ c.email|default:"—" }}</td>
-      <td>{% if c.can_manage %}Can manage{% else %}View only{% endif %}{% if not c.user_id %}<br><span class="hint">Hasn't logged in yet</span>{% endif %}</td>
+      <td>{% if not c.can_manage %}Member{% elif c.company_wide %}Manager, company-wide{% else %}Manager<br><span class="hint">{% for o in c.organizations.all %}{{ o.name }}{% if not forloop.last %}, {% endif %}{% empty %}no organizations{% endfor %}</span>{% endif %}
+        {% if not c.user_id %}<br><span class="hint">Hasn't logged in yet</span>{% endif %}</td>
       <td>
-        {% if me.can_manage %}
+        {% if row.editable %}
           <form method="post" action="{% url 'portal:company-contact-update' company.slug c.pk %}" class="row-actions">{% csrf_token %}
-            {% if not c.is_primary %}<button name="action" value="make_primary">Make primary</button>{% endif %}
-            {% if c.can_manage %}<button name="action" value="revoke_manage">View only</button>{% else %}<button name="action" value="grant_manage">Let manage</button>{% endif %}
+            {% if c.can_manage %}<button name="action" value="revoke_manage">Make member</button>{% else %}<button name="action" value="grant_manage">Make manager</button>{% endif %}
+            {% if me.company_wide %}
+              {% if c.company_wide %}<button name="action" value="revoke_company_wide">Not company-wide</button>{% else %}<button name="action" value="make_company_wide">Make company-wide</button>{% endif %}
+              {% if not c.is_primary %}<button name="action" value="make_primary">Make primary</button>{% endif %}
+            {% endif %}
             <button name="action" value="remove" class="link-danger" onclick="return confirm('Remove {{ c.name|escapejs }}?')">Remove</button>
           </form>
         {% endif %}
       </td>
     </tr>
-  {% endfor %}
+  {% endwith %}{% endfor %}
   </tbody>
 </table>
-{% if me.can_manage %}
-  <h2>Add a colleague</h2>
-  <form method="post" class="portal-form" novalidate>
-    {% csrf_token %}
-    <fieldset>
-      <div class="two">
-        {% include "portal/_field.html" with field=form.name %}
-        {% include "portal/_field.html" with field=form.email %}
-      </div>
-      <div class="two">
-        {% include "portal/_field.html" with field=form.title %}
-        {% include "portal/_field.html" with field=form.phone %}
-      </div>
-      <div class="pfield"><label>{{ form.can_manage }} {{ form.can_manage.label }}</label></div>
-    </fieldset>
-    <button class="btn-secondary">Add contact</button>
-  </form>
-{% endif %}
+<h2>Add a colleague</h2>
+{% if not me.company_wide %}<p class="hint">They'll see the same organizations you do.</p>{% endif %}
+<form method="post" class="portal-form" novalidate>
+  {% csrf_token %}
+  <fieldset>
+    <div class="two">
+      {% include "portal/_field.html" with field=form.name %}
+      {% include "portal/_field.html" with field=form.email %}
+    </div>
+    <div class="two">
+      {% include "portal/_field.html" with field=form.title %}
+      {% include "portal/_field.html" with field=form.phone %}
+    </div>
+    <div class="pfield"><label>{{ form.can_manage }} {{ form.can_manage.label }}</label></div>
+    {% if form.company_wide %}<div class="pfield"><label>{{ form.company_wide }} {{ form.company_wide.label }}</label></div>{% endif %}
+  </fieldset>
+  <button class="btn-secondary">Add</button>
+</form>
 {% endblock %}

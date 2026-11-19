@@ -1,9 +1,10 @@
 """Company pages in the portal: a contact's view of each company they work for.
 
-A user reaches a company only through their own `CompanyContact` row.
-Contacts with `can_manage` edit the company profile (shared by every
-organization the company works with) and manage colleagues; other contacts
-can only view.
+A user reaches a company only through their own `CompanyContact` row; what
+they see follows commerce.access: members see the company but no deals;
+managers see deals with the organizations in their scope (all, if
+company-wide) and manage colleagues within that scope; only company-wide
+managers edit the shared company profile.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.commerce import access
 from apps.commerce import portal as company_portal
 from apps.commerce.claiming import claim_contacts
 from apps.commerce.models import CompanyContact
@@ -34,16 +36,28 @@ def my_contact(request, slug, *, manage: bool = False) -> CompanyContact:
     return contact
 
 
+def _ctx_company(request, me, **extra):
+    return _ctx(
+        request,
+        me=me,
+        company=me.company,
+        can_edit_company=access.can_edit_company(request.user, me.company),
+        **extra,
+    )
+
+
 @login_required
 def company(request, slug):
     me = my_contact(request, slug)
-    return render(request, "portal/company.html", _ctx(request, me=me, company=me.company, **_deals(me.company)))
+    return render(request, "portal/company.html", _ctx_company(request, me, **_deals(me)))
 
 
-def _deals(company):
+def _deals(me):
+    if not me.can_manage:
+        return {"upcoming": [], "past": [], "member": True}
     today = timezone.localdate()
-    rows = [{"kind": "sponsorship", "deal": d} for d in company_portal.sponsorships(company)]
-    rows += [{"kind": "booth", "deal": d} for d in company_portal.bookings(company)]
+    rows = [{"kind": "sponsorship", "deal": d} for d in access.visible(company_portal.sponsorships(me.company), me)]
+    rows += [{"kind": "booth", "deal": d} for d in access.visible(company_portal.bookings(me.company), me)]
     for r in rows:
         d = r["deal"]
         r["event"] = d.event
@@ -83,7 +97,7 @@ def _listing(request, deal, editable):
 @login_required
 def sponsorship(request, slug, pk):
     me = my_contact(request, slug)
-    deal = get_object_or_404(company_portal.sponsorships(me.company), pk=pk)
+    deal = get_object_or_404(access.visible(company_portal.sponsorships(me.company), me), pk=pk)
     editable = me.can_manage and company_portal.can_edit(deal.event)
     if request.method == "POST" and (handled := _listing(request, deal, editable)):
         return handled
@@ -105,10 +119,9 @@ def sponsorship(request, slug, pk):
     return render(
         request,
         "portal/sponsorship.html",
-        _ctx(
+        _ctx_company(
             request,
-            me=me,
-            company=me.company,
+            me,
             deal=deal,
             status=company_portal.STATUS_LABELS.get(deal.status, deal.get_status_display()),
             deliverables=deal.deliverables.order_by("due_date", "pk"),
@@ -127,7 +140,7 @@ def booth(request, slug, pk):
     from apps.pitches.models import FormQuestion
 
     me = my_contact(request, slug)
-    deal = get_object_or_404(company_portal.bookings(me.company), pk=pk)
+    deal = get_object_or_404(access.visible(company_portal.bookings(me.company), me), pk=pk)
     editable = me.can_manage and company_portal.can_edit(deal.event)
     if request.method == "POST" and (handled := _listing(request, deal, editable)):
         return handled
@@ -155,10 +168,9 @@ def booth(request, slug, pk):
     return render(
         request,
         "portal/booth.html",
-        _ctx(
+        _ctx_company(
             request,
-            me=me,
-            company=me.company,
+            me,
             deal=deal,
             status=company_portal.STATUS_LABELS.get(deal.status, deal.get_status_display()),
             invoices=company_portal.invoices_for(deal),
@@ -174,7 +186,9 @@ def booth(request, slug, pk):
 
 @login_required
 def company_edit(request, slug):
-    me = my_contact(request, slug, manage=True)
+    me = my_contact(request, slug)
+    if not access.can_edit_company(request.user, me.company):
+        raise PermissionDenied("Only company-wide managers can change the shared company profile.")
     form = CompanyForm(request.POST or None, request.FILES or None, instance=me.company)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -183,31 +197,44 @@ def company_edit(request, slug):
     return render(
         request,
         "portal/company_edit.html",
-        _ctx(request, me=me, company=me.company, form=form),
+        _ctx_company(request, me, form=form),
         status=422 if request.method == "POST" else 200,
     )
+
+
+def _can_manage_contact(me: CompanyContact, contact: CompanyContact) -> bool:
+    """Company-wide managers manage anyone; scoped managers only people within their scope."""
+    if me.company_wide:
+        return True
+    if not me.can_manage or contact.company_wide:
+        return False
+    mine = set(me.organizations.values_list("pk", flat=True))
+    return set(contact.organizations.values_list("pk", flat=True)) <= mine
 
 
 @login_required
 def company_contacts(request, slug):
     me = my_contact(request, slug)
-    form = ContactForm(request.POST or None, company=me.company)
-    if request.method == "POST":
-        if not me.can_manage:
-            raise PermissionDenied
-        if form.is_valid():
+    if not me.can_manage:
+        raise PermissionDenied("Only managers can see and manage the company's people.")
+    form = ContactForm(request.POST or None, company=me.company, allow_company_wide=me.company_wide)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
             contact = form.save(commit=False)
             contact.company = me.company
+            contact.company_wide = False
             contact.save()
-            messages.success(
-                request, f"Added {contact.name}. They can log in with {contact.email} to see this company."
+            access.scope_for_new_colleague(
+                me, contact, company_wide=form.cleaned_data.get("company_wide", False) and contact.can_manage
             )
-            return redirect("portal:company-contacts", slug=me.company.slug)
-    contacts = me.company.contacts.select_related("user")
+        messages.success(request, f"Added {contact.name}. They can log in with {contact.email} to see this company.")
+        return redirect("portal:company-contacts", slug=me.company.slug)
+    contacts = me.company.contacts.select_related("user").prefetch_related("organizations")
+    rows = [{"c": c, "editable": _can_manage_contact(me, c)} for c in contacts]
     return render(
         request,
         "portal/company_contacts.html",
-        _ctx(request, me=me, company=me.company, contacts=contacts, form=form),
+        _ctx_company(request, me, rows=rows, form=form),
         status=422 if request.method == "POST" else 200,
     )
 
@@ -217,22 +244,33 @@ def company_contacts(request, slug):
 def company_contact_update(request, slug, pk):
     me = my_contact(request, slug, manage=True)
     contact = get_object_or_404(CompanyContact, pk=pk, company=me.company)
+    if not _can_manage_contact(me, contact):
+        raise PermissionDenied
     action = request.POST.get("action")
     removing_self = action == "remove" and contact.pk == me.pk
     with transaction.atomic():
-        managers = me.company.contacts.filter(can_manage=True).exclude(pk=contact.pk)
-        if action in ("remove", "revoke_manage") and contact.can_manage and not managers.exists():
-            messages.error(request, "Someone has to be able to manage the company: give another contact that first.")
+        other_wide = me.company.contacts.filter(company_wide=True, can_manage=True).exclude(pk=contact.pk)
+        other_managers = me.company.contacts.filter(can_manage=True).exclude(pk=contact.pk)
+        losing = action in ("remove", "revoke_manage", "revoke_company_wide")
+        if losing and contact.company_wide and contact.can_manage and not other_wide.exists():
+            messages.error(request, "Make someone else company-wide first: the company needs one.")
+        elif losing and action != "revoke_company_wide" and contact.can_manage and not other_managers.exists():
+            messages.error(
+                request, "Someone has to be able to manage the company: make another person a manager first."
+            )
         elif action == "remove":
             contact.delete()
             messages.success(request, f"Removed {contact.name}.")
-        elif action == "grant_manage":
-            contact.can_manage = True
-            contact.save(update_fields=["can_manage", "updated_at"])
-        elif action == "revoke_manage":
-            contact.can_manage = False
-            contact.save(update_fields=["can_manage", "updated_at"])
-        elif action == "make_primary":
+        elif action in ("grant_manage", "revoke_manage"):
+            contact.can_manage = action == "grant_manage"
+            if not contact.can_manage:
+                contact.company_wide = False
+            contact.save(update_fields=["can_manage", "company_wide", "updated_at"])
+        elif action in ("make_company_wide", "revoke_company_wide") and me.company_wide:
+            contact.company_wide = action == "make_company_wide"
+            contact.can_manage = contact.can_manage or contact.company_wide
+            contact.save(update_fields=["company_wide", "can_manage", "updated_at"])
+        elif action == "make_primary" and me.company_wide:
             me.company.contacts.update(is_primary=False)
             contact.is_primary = True
             contact.save(update_fields=["is_primary", "updated_at"])
