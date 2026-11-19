@@ -115,6 +115,7 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
             # Only speakers who confirmed are published (they confirm in the speaker portal).
             queryset=(SessionSpeaker.objects.filter(is_confirmed=True) if public else SessionSpeaker.objects.all())
             .select_related("speaker")
+            .prefetch_related("speaker__links")  # one query for every speaker's links
             .order_by("sort_order", "pk"),
         ),
     ).order_by("starts_at", "public_id")
@@ -189,7 +190,9 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
 
     # ---- speakers -------------------------------------------------------
     engagements = {
-        e.speaker_id: e for e in EventSpeaker.objects.filter(event=event, speaker_id__in=speaker_objs.keys())
+        e.speaker_id: e
+        # select_related: display_bio/display_affiliation fall back to the profile.
+        for e in EventSpeaker.objects.filter(event=event, speaker_id__in=speaker_objs.keys()).select_related("speaker")
     }
     granted = set()
     if not public:

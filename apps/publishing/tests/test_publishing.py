@@ -203,3 +203,35 @@ def test_only_confirmed_speakers_are_published(world, make_session):
     internal = build_event_bundle(world.event, Audience.INTERNAL)
     row = next(x for x in internal["sessions"] if x["id"] == s.public_id)["speakers"][0]
     assert row["confirmed"] is False
+
+
+@pytest.mark.django_db
+def test_bundle_query_count_does_not_grow_with_speakers(world, make_session):
+    """Regression: the bundle used to run one query per speaker (581 for NICAR 2026)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from apps.publishing.bundle import Audience, build_event_bundle
+    from apps.speakers.models import EventSpeaker, SpeakerLink, SpeakerProfile
+    from conftest import at
+
+    world.event.publish_schedule = True
+    world.event.save()
+
+    def add_speakers(n, start):
+        people = [SpeakerProfile.objects.create(first_name=f"S{start + i}", last_name="X") for i in range(n)]
+        for p in people:
+            SpeakerLink.objects.create(speaker=p, url="https://example.org")
+            EventSpeaker.objects.create(event=world.event, speaker=p)
+        make_session(f"Panel {start}", room=world.er_a, start=at(5, 9 + start // 10), end=at(5, 10 + start // 10),
+                     speakers=people)  # fmt: skip
+
+    def count():
+        with CaptureQueriesContext(connection) as ctx:
+            build_event_bundle(world.event, Audience.PUBLIC)
+        return len(ctx.captured_queries)
+
+    add_speakers(3, 0)
+    small = count()
+    add_speakers(12, 10)
+    assert count() == small
