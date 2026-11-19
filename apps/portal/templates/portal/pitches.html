@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}
+{% block title %}Your pitches{% endblock %}
+{% block main %}
+<h1>Your pitches</h1>
+<p>{% if open_count %}<a class="btn" href="{% url 'portal:pitch-new' %}">Pitch a session</a> {{ open_count }} call{{ open_count|pluralize }} open now.{% else %}No calls are open right now.{% endif %}</p>
+{% for row in rows %}
+  <article class="session-card">
+    <h2 class="mt-0"><a href="{% url 'portal:pitch' row.pitch.pk %}">{{ row.pitch.title }}</a></h2>
+    {% if not row.mine %}<p class="hint">Added as a co-speaker by {{ row.pitch.submitted_by }}</p>{% endif %}
+    <ul class="targets">
+      {% for t in row.targets %}<li>{{ t.target.event.name }}: <span class="tag {% if t.status == 'accepted' %}tag-ok{% elif t.status == 'under_review' %}{% else %}tag-warn{% endif %}">{{ t.label }}</span></li>{% endfor %}
+    </ul>
+  </article>
+{% empty %}
+  <p>No pitches yet.</p>
+{% endfor %}
+{% endblock %}

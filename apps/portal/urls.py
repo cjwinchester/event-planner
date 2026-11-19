@@ -12,4 +12,9 @@ urlpatterns = [
     path("sessions/<int:pk>/", views.session_detail, name="session"),
     path("sessions/<int:pk>/withdraw/", views.session_withdraw, name="session-withdraw"),
     path("events/<int:event_id>/info/", views.event_info, name="event-info"),
+    path("calls/", views.calls, name="calls"),
+    path("pitches/", views.pitches, name="pitches"),
+    path("pitches/new/", views.pitch_new, name="pitch-new"),
+    path("pitches/<int:pk>/", views.pitch_detail, name="pitch"),
+    path("pitches/<int:pk>/edit/", views.pitch_edit, name="pitch-edit"),
 ]

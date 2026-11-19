@@ -1,0 +1,39 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ pitch.title }}{% endblock %}
+{% block main %}
+<p><a href="{% url 'portal:pitches' %}">← Your pitches</a></p>
+<h1>{{ pitch.title }}</h1>
+{% if not mine %}<p class="notice">{{ pitch.submitted_by }} added you as a co-speaker. Only they can edit or withdraw this pitch.</p>{% endif %}
+<section class="panel-box" aria-labelledby="where-h">
+  <h2 id="where-h">Where it's pitched</h2>
+  <table class="portal-table">
+    <thead><tr><th scope="col">Event</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for t in targets %}
+      <tr>
+        <td>{{ t.target.event.name }} <span class="hint">{{ t.target.event.organization.name }}</span></td>
+        <td>{{ t.label }}{% if t.status == "accepted" and t.target.confirmed_at %} · confirmed{% endif %}</td>
+        <td>
+          {% if mine %}
+            {% if t.status == "accepted" and not t.target.confirmed_at %}
+              <form method="post">{% csrf_token %}<input type="hidden" name="target" value="{{ t.target.pk }}"><button class="btn" name="action" value="confirm">Confirm I'll do it</button></form>
+            {% elif t.status == "accepted" %}<a href="{% url 'portal:sessions' %}">See your session</a>
+            {% elif t.status == "under_review" %}
+              <form method="post" onsubmit="return confirm('Withdraw this pitch from {{ t.target.event.name|escapejs }}?')">{% csrf_token %}<input type="hidden" name="target" value="{{ t.target.pk }}"><button class="link-danger" name="action" value="withdraw">Withdraw</button></form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+<section aria-labelledby="pitch-h">
+  <h2 id="pitch-h">The pitch</h2>
+  {% if can_edit %}<p><a href="{% url 'portal:pitch-edit' pitch.pk %}">Edit pitch</a> <span class="hint">(until the pitch window closes)</span></p>{% endif %}
+  {% if pitch.format or pitch.skill_level %}<p class="meta">{{ pitch.format }}{% if pitch.format and pitch.skill_level %} · {% endif %}{{ pitch.skill_level }}</p>{% endif %}
+  <div class="description">{{ pitch.description|linebreaks }}</div>
+  <p><strong>Speakers:</strong> {{ pitch.submitted_by }}{% for sp in co_speakers %}, {{ sp }}{% endfor %}</p>
+  {% if pitch.speaker_suggestions %}<p><strong>Suggested speakers:</strong> {{ pitch.speaker_suggestions }}</p>{% endif %}
+</section>
+{% endblock %}

@@ -25,7 +25,16 @@ from apps.speakers import sharing
 from apps.speakers.merging import claim_profiles
 from apps.speakers.models import EventSpeaker, SpeakerProfile, SpeakerShareGrant
 
-from .forms import EventInfoForm, GrantForm, LinkFormSet, ProfileForm, SessionEditForm, WithdrawForm
+from .forms import (
+    CoSpeakerFormSet,
+    EventInfoForm,
+    GrantForm,
+    LinkFormSet,
+    PitchForm,
+    ProfileForm,
+    SessionEditForm,
+    WithdrawForm,
+)
 
 
 def home(request):
@@ -245,3 +254,240 @@ def event_info(request, event_id):
             messages.success(request, f"Saved your details for {event.name}.")
             return redirect("portal:sessions")
     return render(request, "portal/event_info.html", _ctx(request, event=event, form=form))
+
+
+# ------------------------------------------------------------------ part C: open calls and pitches
+
+STATUS_LABELS = {
+    "under_review": "Under review",
+    "accepted": "Accepted",
+    "not_accepted": "Not accepted",
+    "combined": "Combined with a similar pitch",
+    "withdrawn": "Withdrawn",
+}
+
+
+def _open_calls():
+    from apps.core.models import Visibility
+    from apps.events.models import Event
+
+    return (
+        Event.objects.with_open_pitch_window()
+        .exclude(visibility=Visibility.PRIVATE)
+        .select_related("organization")
+        .order_by("pitch_window_closes_at", "name")
+    )
+
+
+def calls(request):
+    """Public: every event currently accepting pitches."""
+    return render(request, "portal/calls.html", _ctx(request, events=_open_calls()))
+
+
+def _co_speakers(formset, submitter) -> list[SpeakerProfile]:
+    """Find co-speakers by email or create profiles for them. Nothing about them is
+    shared with organizers until they log in and choose to share."""
+    from django.db.models.functions import Lower
+
+    found = []
+    for f in formset:
+        data = getattr(f, "cleaned_data", None) or {}
+        email = (data.get("email") or "").strip()
+        if not email:
+            continue
+        profile = (
+            SpeakerProfile.objects.annotate(lower_email=Lower("email"))
+            .filter(lower_email=email.lower(), merged_into__isnull=True)
+            .first()
+        )
+        if profile is None:
+            profile = SpeakerProfile.objects.create(
+                first_name=data["first_name"], last_name=data.get("last_name", ""), email=email
+            )
+        if profile.pk != submitter.pk and profile not in found:
+            found.append(profile)
+    return found
+
+
+def _datalists(events):
+    from apps.program.models import SessionType, SkillLevel
+
+    org_ids = {e.organization_id for e in events}
+    return {
+        "formats": SessionType.objects.filter(organization_id__in=org_ids).values_list("name", flat=True).distinct(),
+        "levels": SkillLevel.objects.filter(organization_id__in=org_ids).values_list("name", flat=True).distinct(),
+    }
+
+
+@login_required
+def pitch_new(request):
+    from apps.pitches import services as pitch_services
+
+    profile = _profile(request)
+    if profile is None:
+        messages.info(request, "Create your speaker profile first; organizers see it with your pitch.")
+        return redirect("portal:profile")
+    open_calls = list(_open_calls())
+    chosen_ids = {int(x) for x in (request.POST or request.GET).getlist("events") if x.isdigit()}
+    events = [e for e in open_calls if e.pk in chosen_ids]
+    if not events:
+        return render(request, "portal/pitch_choose.html", _ctx(request, events=open_calls))
+    form = PitchForm(request.POST or None, events=events)
+    co = CoSpeakerFormSet(request.POST or None, prefix="co")
+    if request.method == "POST" and form.is_valid() and co.is_valid():
+        data = form.cleaned_data
+        try:
+            pitch = pitch_services.submit_pitch(
+                submitter=profile,
+                user=request.user,
+                title=data["title"],
+                description=data["description"],
+                events=events,
+                co_speakers=_co_speakers(co, profile),
+                answers_by_event=form.answers_by_event(),
+                format=data["format"],
+                skill_level=data["skill_level"],
+                speaker_suggestions=data["speaker_suggestions"],
+                willing_to_organize=data["willing_to_organize"],
+            )
+        except ValidationError as exc:
+            _form_errors(form, exc)
+        except pitch_services.PitchWorkflowError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, "Pitch sent. You'll see decisions here once the organizers make them.")
+            return redirect("portal:pitch", pk=pitch.pk)
+    return render(
+        request,
+        "portal/pitch_form.html",
+        _ctx(request, form=form, co=co, events=events, creating=True, **_datalists(events)),
+        status=422 if request.method == "POST" else 200,
+    )
+
+
+def _form_errors(form, exc: ValidationError) -> None:
+    """validate_answers raises {slug: msg}; show it on every event's matching field."""
+    for slug, errs in exc.message_dict.items():
+        placed = False
+        for _event, names in form.event_questions:
+            for name, s in names:
+                if s == slug:
+                    form.add_error(name, errs)
+                    placed = True
+        if not placed:
+            form.add_error(None, errs)
+
+
+def _my_pitches(profile):
+    from django.db.models import Q
+
+    from apps.pitches.models import Pitch
+
+    return (
+        Pitch.objects.filter(Q(submitted_by=profile) | Q(pitch_speakers__speaker=profile))
+        .distinct()
+        .select_related("submitted_by")
+        .prefetch_related("targets__event__organization", "targets__merged_into", "pitch_speakers__speaker")
+        .order_by("-submitted_at")
+    )
+
+
+def _pitch_rows(pitch):
+    from apps.pitches import services as pitch_services
+
+    return [
+        {"target": t, "status": (s := pitch_services.speaker_status(t)), "label": STATUS_LABELS[s]}
+        for t in pitch.targets.all()
+    ]
+
+
+@login_required
+def pitches(request):
+    profile = _profile(request)
+    if profile is None:
+        return redirect("portal:profile")
+    rows = [
+        {"pitch": p, "targets": _pitch_rows(p), "mine": p.submitted_by_id == profile.pk} for p in _my_pitches(profile)
+    ]
+    return render(request, "portal/pitches.html", _ctx(request, rows=rows, open_count=_open_calls().count()))
+
+
+@login_required
+def pitch_detail(request, pk):
+    from apps.pitches import services as pitch_services
+
+    profile = _profile(request)
+    pitch = get_object_or_404(_my_pitches(profile), pk=pk) if profile else None
+    if pitch is None:
+        return redirect("portal:profile")
+    mine = pitch.submitted_by_id == profile.pk  # co-speakers get a read-only view
+    if request.method == "POST" and mine:
+        target = get_object_or_404(pitch.targets, pk=request.POST.get("target"))
+        try:
+            if request.POST.get("action") == "withdraw":
+                pitch_services.speaker_withdraw(target)
+                messages.success(request, f"Withdrawn from {target.event.name}.")
+            elif request.POST.get("action") == "confirm":
+                pitch_services.confirm(target)
+                messages.success(request, "Thanks for confirming! See it under Sessions.")
+        except pitch_services.PitchWorkflowError as exc:
+            messages.error(request, str(exc))
+        return redirect("portal:pitch", pk=pitch.pk)
+    return render(
+        request,
+        "portal/pitch.html",
+        _ctx(
+            request,
+            pitch=pitch,
+            mine=mine,
+            targets=_pitch_rows(pitch),
+            can_edit=mine and pitch_services.speaker_can_edit(pitch),
+            co_speakers=[ps.speaker for ps in pitch.pitch_speakers.all() if ps.speaker_id != pitch.submitted_by_id],
+        ),
+    )
+
+
+@login_required
+def pitch_edit(request, pk):
+    from apps.pitches import services as pitch_services
+
+    profile = _profile(request)
+    if profile is None:
+        return redirect("portal:profile")
+    pitch = get_object_or_404(_my_pitches(profile).filter(submitted_by=profile), pk=pk)
+    if not pitch_services.speaker_can_edit(pitch):
+        messages.error(request, "This pitch can't be edited any more: a pitch window closed or a decision was made.")
+        return redirect("portal:pitch", pk=pitch.pk)
+    targets = pitch_services.live_targets(pitch)
+    events = [t.event for t in targets]
+    initial = {f: getattr(pitch, f) for f in pitch_services.SPEAKER_FIELDS}
+    for t in targets:
+        initial.update({f"e{t.event_id}_{slug}": v for slug, v in (t.answers or {}).items()})
+    co_initial = [
+        {"first_name": ps.speaker.first_name, "last_name": ps.speaker.last_name, "email": ps.speaker.email}
+        for ps in pitch.pitch_speakers.all()
+        if ps.speaker_id != pitch.submitted_by_id
+    ]
+    form = PitchForm(request.POST or None, events=events, initial=initial)
+    co = CoSpeakerFormSet(request.POST or None, prefix="co", initial=co_initial)
+    if request.method == "POST" and form.is_valid() and co.is_valid():
+        try:
+            pitch_services.speaker_update_pitch(
+                pitch,
+                {f: form.cleaned_data[f] for f in pitch_services.SPEAKER_FIELDS},
+                answers_by_event=form.answers_by_event(),
+                co_speakers=_co_speakers(co, profile),
+            )
+        except ValidationError as exc:
+            _form_errors(form, exc)
+        except pitch_services.PitchWorkflowError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, "Pitch updated.")
+            return redirect("portal:pitch", pk=pitch.pk)
+    return render(
+        request,
+        "portal/pitch_form.html",
+        _ctx(request, form=form, co=co, events=events, pitch=pitch, creating=False, **_datalists(events)),
+        status=422 if request.method == "POST" else 200,
+    )

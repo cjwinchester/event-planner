@@ -1,0 +1,52 @@
+{% extends "portal/base.html" %}
+{% block title %}{% if creating %}Pitch a session{% else %}Edit pitch{% endif %}{% endblock %}
+{% block main %}
+<h1>{% if creating %}Pitch a session{% else %}Edit your pitch{% endif %}</h1>
+<p>To: {% for e in events %}<strong>{{ e.name }}</strong> ({{ e.organization.name }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+{% if creating %}Pitching lets these organizations see your contact details; you can change that under Sharing.{% endif %}</p>
+<form method="post" class="portal-form" novalidate>
+  {% csrf_token %}
+  {% for e in events %}<input type="hidden" name="events" value="{{ e.pk }}">{% endfor %}
+  {% if form.non_field_errors %}<div class="notice" role="alert">{% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}</div>{% endif %}
+  <fieldset>
+    <legend>Your pitch</legend>
+    {% include "portal/_field.html" with field=form.title %}
+    {% include "portal/_field.html" with field=form.description %}
+    <div class="two">
+      {% include "portal/_field.html" with field=form.format %}
+      {% include "portal/_field.html" with field=form.skill_level %}
+    </div>
+    <datalist id="formats">{% for f in formats %}<option value="{{ f }}">{% endfor %}</datalist>
+    <datalist id="levels">{% for l in levels %}<option value="{{ l }}">{% endfor %}</datalist>
+    {% include "portal/_field.html" with field=form.speaker_suggestions %}
+    <div class="pfield"><label>{{ form.willing_to_organize }} {{ form.willing_to_organize.label }}</label></div>
+  </fieldset>
+  <fieldset>
+    <legend>Co-speakers who agreed to join</legend>
+    <p class="hint">They'll see this pitch (read-only) once they create an account with that email. Nothing about them is shared with the organizers until they choose to.</p>
+    {{ co.management_form }}
+    {% for f in co %}
+      <div class="co-row">{{ f.first_name }}{{ f.last_name }}{{ f.email }}</div>
+      {% for err in f.non_field_errors %}<p class="error">{{ err }}</p>{% endfor %}{% for err in f.email.errors %}<p class="error">{{ err }}</p>{% endfor %}
+    {% endfor %}
+  </fieldset>
+  {% for event, fields in form.question_groups %}
+    {% if fields %}
+      <fieldset>
+        <legend>Questions from {{ event.name }}</legend>
+        {% for field in fields %}
+          {% if field.field.choices %}
+            <div class="pfield"><fieldset class="choices"><legend>{{ field.label }}{% if field.field.required %} *{% endif %}</legend>{{ field }}</fieldset>{% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}</div>
+          {% elif field.field.widget.input_type == "checkbox" %}
+            <div class="pfield"><label>{{ field }} {{ field.label }}</label></div>
+          {% else %}
+            {% include "portal/_field.html" %}
+          {% endif %}
+        {% endfor %}
+      </fieldset>
+    {% endif %}
+  {% endfor %}
+  <button class="btn">{% if creating %}Send pitch{% else %}Save changes{% endif %}</button>
+  {% if pitch %}<a href="{% url 'portal:pitch' pitch.pk %}">Cancel</a>{% endif %}
+</form>
+{% endblock %}

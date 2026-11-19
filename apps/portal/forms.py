@@ -96,32 +96,102 @@ class EventInfoForm(forms.Form):
     )
 
     def __init__(self, *args, questions=(), **kwargs):
-        from apps.pitches.models import FormQuestion
-
         super().__init__(*args, **kwargs)
-        kind = FormQuestion.Kind
         self.questions = list(questions)
         for q in self.questions:
-            common = {"label": q.prompt, "help_text": q.help_text, "required": q.required}
-            if q.kind == kind.LONG_TEXT:
-                field = forms.CharField(widget=forms.Textarea(attrs={"rows": 4, "class": "input"}), **common)
-            elif q.kind == kind.EMAIL:
-                field = forms.EmailField(widget=forms.EmailInput(attrs={"class": "input"}), **common)
-            elif q.kind == kind.URL:
-                field = forms.URLField(widget=forms.URLInput(attrs={"class": "input"}), **common)
-            elif q.kind == kind.INTEGER:
-                field = forms.IntegerField(widget=forms.NumberInput(attrs={"class": "input"}), **common)
-            elif q.kind == kind.BOOLEAN:
-                field = forms.BooleanField(**{**common, "required": False})
-            elif q.kind == kind.SINGLE_CHOICE:
-                field = forms.ChoiceField(choices=[(c, c) for c in q.choices], widget=forms.RadioSelect, **common)
-            elif q.kind == kind.MULTI_CHOICE:
-                field = forms.MultipleChoiceField(
-                    choices=[(c, c) for c in q.choices], widget=forms.CheckboxSelectMultiple, **common
-                )
-            else:
-                field = forms.CharField(widget=forms.TextInput(attrs={"class": "input"}), **common)
-            self.fields[f"q_{q.slug}"] = field
+            self.fields[f"q_{q.slug}"] = question_field(q)
 
     def answers(self) -> dict:
         return {q.slug: self.cleaned_data.get(f"q_{q.slug}") for q in self.questions}
+
+
+def question_field(q) -> forms.Field:
+    """A form field for one custom question (pitches.FormQuestion)."""
+    from apps.pitches.models import FormQuestion
+
+    kind = FormQuestion.Kind
+    common = {"label": q.prompt, "help_text": q.help_text, "required": q.required}
+    if q.kind == kind.LONG_TEXT:
+        return forms.CharField(widget=forms.Textarea(attrs={"rows": 4, "class": "input"}), **common)
+    if q.kind == kind.EMAIL:
+        return forms.EmailField(widget=forms.EmailInput(attrs={"class": "input"}), **common)
+    if q.kind == kind.URL:
+        return forms.URLField(widget=forms.URLInput(attrs={"class": "input"}), **common)
+    if q.kind == kind.INTEGER:
+        return forms.IntegerField(widget=forms.NumberInput(attrs={"class": "input"}), **common)
+    if q.kind == kind.BOOLEAN:
+        return forms.BooleanField(**{**common, "required": False})
+    if q.kind == kind.SINGLE_CHOICE:
+        return forms.ChoiceField(choices=[(c, c) for c in q.choices], widget=forms.RadioSelect, **common)
+    if q.kind == kind.MULTI_CHOICE:
+        return forms.MultipleChoiceField(
+            choices=[(c, c) for c in q.choices], widget=forms.CheckboxSelectMultiple, **common
+        )
+    return forms.CharField(widget=forms.TextInput(attrs={"class": "input"}), **common)
+
+
+class PitchForm(forms.Form):
+    """A pitch plus each chosen event's custom questions (fields `e<event id>_<slug>`)."""
+
+    title = forms.CharField(max_length=500, widget=forms.TextInput(attrs={"class": "input"}))
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={"class": "input", "rows": 8}),
+        help_text="What attendees will learn, and why now.",
+    )
+    format = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Suggested format",
+        widget=forms.TextInput(attrs={"class": "input", "list": "formats"}),
+    )
+    skill_level = forms.CharField(
+        max_length=100, required=False, widget=forms.TextInput(attrs={"class": "input", "list": "levels"})
+    )
+    speaker_suggestions = forms.CharField(
+        required=False,
+        label="Other speakers you'd suggest (not yet asked)",
+        widget=forms.Textarea(attrs={"class": "input", "rows": 2}),
+    )
+    willing_to_organize = forms.BooleanField(required=False, label="I'm willing to organize or moderate this session")
+
+    def __init__(self, *args, events=(), **kwargs):
+        from apps.pitches.models import FormQuestion
+
+        super().__init__(*args, **kwargs)
+        self.event_questions = []  # [(event, [bound fields])]
+        for event in events:
+            names = []
+            for q in FormQuestion.objects.filter(event=event, form=FormQuestion.Form.PITCH).order_by("sort_order"):
+                name = f"e{event.pk}_{q.slug}"
+                self.fields[name] = question_field(q)
+                names.append((name, q.slug))
+            self.event_questions.append((event, names))
+
+    def answers_by_event(self) -> dict:
+        return {
+            event.pk: {slug: self.cleaned_data.get(name) for name, slug in names}
+            for event, names in self.event_questions
+        }
+
+    def question_groups(self):
+        return [(event, [self[name] for name, _ in names]) for event, names in self.event_questions]
+
+
+class CoSpeakerForm(forms.Form):
+    first_name = forms.CharField(
+        max_length=255, required=False, widget=forms.TextInput(attrs={"class": "input", "placeholder": "First name"})
+    )
+    last_name = forms.CharField(
+        max_length=255, required=False, widget=forms.TextInput(attrs={"class": "input", "placeholder": "Last name"})
+    )
+    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={"class": "input", "placeholder": "Email"}))
+
+    def clean(self):
+        data = super().clean()
+        filled = [data.get(f) for f in ("first_name", "last_name", "email")]
+        if any(filled) and not (data.get("first_name") and data.get("email")):
+            raise forms.ValidationError("Give at least a first name and an email for each co-speaker.")
+        return data
+
+
+CoSpeakerFormSet = forms.formset_factory(CoSpeakerForm, extra=3, max_num=8)

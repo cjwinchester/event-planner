@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% load tz %}
+{% block title %}Open calls{% endblock %}
+{% block main %}
+<h1>Open calls for pitches</h1>
+<p>Events accepting session pitches right now. One pitch can go to several events at once.</p>
+{% for e in events %}
+  <article class="session-card">
+    <h2 class="mt-0">{{ e.name }}</h2>
+    <p class="meta">{{ e.organization.name }} · {{ e.start_date|date:"F j" }}–{{ e.end_date|date:"F j, Y" }}{% if e.format != "in_person" %} · {{ e.get_format_display }}{% endif %}</p>
+    <p><strong>Pitches close {% timezone e.timezone %}{{ e.pitch_window_closes_at|date:"l, F j, g:i A T" }}{% endtimezone %}</strong></p>
+    {% if e.pitch_instructions %}<div class="instructions">{{ e.pitch_instructions|linebreaks }}</div>{% endif %}
+    <p class="actions"><a class="btn" href="{% url 'portal:pitch-new' %}?events={{ e.pk }}">Pitch a session</a>{% if e.details_url %} <a href="{{ e.details_url }}">About the event</a>{% endif %}</p>
+  </article>
+{% empty %}
+  <p>No calls are open right now. Check back soon.</p>
+{% endfor %}
+{% endblock %}

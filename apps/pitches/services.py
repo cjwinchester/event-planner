@@ -275,3 +275,66 @@ def votes_visible(target: PitchTarget, user, *, has_voted: bool | None = None) -
     if has_voted is None:
         has_voted = target.votes.filter(user=user).exists()
     return has_voted
+
+
+# ------------------------------------------------------------------ speaker self-service (portal)
+
+SPEAKER_FIELDS = ("title", "description", "format", "skill_level", "speaker_suggestions", "willing_to_organize")
+
+
+def speaker_status(target: PitchTarget) -> str:
+    """What the pitcher may see. Decisions stay "under review" until staff
+    finalize them (inform); a combo'd pitch reads "combined" once the pitch it
+    joined has been decided."""
+    if target.status == Status.MERGED:
+        primary = target.merged_into
+        return "combined" if primary is not None and primary.informed_at else "under_review"
+    if target.status in (Status.ACCEPTED, Status.DECLINED, Status.WITHDRAWN):
+        return {Status.ACCEPTED: "accepted", Status.DECLINED: "not_accepted", Status.WITHDRAWN: "withdrawn"}[
+            target.status
+        ]
+    return "under_review"
+
+
+def live_targets(pitch: Pitch):
+    return [t for t in pitch.targets.select_related("event") if t.status != Status.WITHDRAWN]
+
+
+def speaker_can_edit(pitch: Pitch, at=None) -> bool:
+    """The submitter may edit while every event it's still pitched to has an open
+    pitch window and none has decided. (The pitch window is separate from the
+    event's speaker-edit deadline, which governs accepted sessions.)"""
+    targets = live_targets(pitch)
+    return bool(targets) and all(
+        t.status in (Status.SUBMITTED, Status.WAITLISTED) and t.event.is_pitch_window_open(at) for t in targets
+    )
+
+
+def speaker_update_pitch(pitch: Pitch, data: dict, *, answers_by_event=None, co_speakers=None) -> Pitch:
+    if not speaker_can_edit(pitch):
+        raise PitchWorkflowError("This pitch can't be edited any more: a pitch window closed or a decision was made.")
+    answers_by_event = answers_by_event or {}
+    targets = live_targets(pitch)
+    cleaned = {t.pk: validate_answers(t.event, answers_by_event.get(t.event_id, {})) for t in targets}
+    with transaction.atomic():
+        for f in SPEAKER_FIELDS:
+            if f in data:
+                setattr(pitch, f, data[f])
+        pitch.save()
+        for t in targets:
+            t.answers = cleaned[t.pk]
+            t.save(update_fields=["answers", "updated_at"])
+        if co_speakers is not None:
+            keep = {pitch.submitted_by_id, *(sp.pk for sp in co_speakers)}
+            pitch.pitch_speakers.exclude(speaker_id__in=keep).delete()
+            for i, sp in enumerate(co_speakers, start=1):
+                PitchSpeaker.objects.get_or_create(pitch=pitch, speaker=sp, defaults={"sort_order": i})
+    return pitch
+
+
+def speaker_withdraw(target: PitchTarget) -> None:
+    """Withdraw a pitch from one event, any time before a final decision."""
+    if target.status in PitchTarget.FINAL:
+        raise PitchWorkflowError("This pitch already has a decision. If it was accepted, withdraw from the session.")
+    target.status = Status.WITHDRAWN
+    target.save(update_fields=["status", "updated_at"])

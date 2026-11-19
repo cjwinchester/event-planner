@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}
+{% load tz %}
+{% block title %}Pitch a session{% endblock %}
+{% block main %}
+<h1>Pitch a session</h1>
+{% if events %}
+  <form method="get" class="portal-form">
+    <fieldset>
+      <legend>Which events? You can pick more than one.</legend>
+      {% for e in events %}
+        <label class="choice-row"><input type="checkbox" name="events" value="{{ e.pk }}"> <strong>{{ e.name }}</strong> <span class="hint">{{ e.organization.name }} · closes {% timezone e.timezone %}{{ e.pitch_window_closes_at|date:"M j" }}{% endtimezone %}</span></label>
+      {% endfor %}
+    </fieldset>
+    <button class="btn">Continue</button>
+  </form>
+{% else %}
+  <p>No calls are open right now.</p>
+{% endif %}
+{% endblock %}

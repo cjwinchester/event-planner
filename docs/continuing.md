@@ -57,7 +57,14 @@ Staff: **Speaker updates** page (before/after diffs, mark reviewed, set the dead
 unconfirmed speakers) and "mark confirmed" in the grid's session panel.
 Email: one Google Workspace account via SMTP + app password (`EMAIL_HOST_USER`,
 `EMAIL_HOST_PASSWORD`; console when unset); site name "Event Planner" in emails.
-Part C (pitches/open calls; co-speakers read-only once they have an account) is next.
+**Part C**: public **Open calls** (`/speak/calls/`, events with an open pitch window, not
+private); pitch to one or several events with each event's questions and co-speakers (by
+name + email; found or created, never auto-shared); **Pitches** with the speaker-visible
+status (`pitches.services.speaker_status`: "Under review" until finalized; "Combined with a
+similar pitch" once the pitch it joined is decided). The submitter edits while every target's
+**pitch window** is open and nothing is decided (separate from the session
+`speaker_edit_deadline`), withdraws per event before a decision, and confirms acceptances;
+co-speakers get a read-only view once they have an account.
 
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
