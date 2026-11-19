@@ -94,7 +94,9 @@ document.addEventListener("change", (e) => {
 });
 
 // Keep the active row highlighted after HTMX swaps a row (a vote) or the table.
-document.body.addEventListener("htmx:afterSwap", () => {
+// afterSettle, not afterSwap: htmx's settle step re-applies the new element's
+// attributes (class included) after the swap, which would erase "is-active".
+document.body.addEventListener("htmx:afterSettle", () => {
   activeRow()?.classList.add("is-active");
   updateBulk();
 });
