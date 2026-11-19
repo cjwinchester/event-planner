@@ -1,0 +1,32 @@
+/* Hotel page: plain CSS, scannable on a laptop and printable. */
+body { margin: 0; background: #fff; color: #111827; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hotel { max-width: 64rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.25rem; margin: 2rem 0 .5rem; border-bottom: 2px solid #111827; padding-bottom: .2rem; }
+h3.day { font-size: 1.05rem; margin: 1.5rem 0 .4rem; }
+.hint { color: #4b5563; font-size: .88rem; }
+.count { background: #b91c1c; color: #fff; border-radius: 999px; padding: 0 .5rem; font-size: .85rem; vertical-align: middle; }
+.change-list { padding-left: 1.4rem; }
+.change { padding: .55rem 0; border-bottom: 1px solid #e5e7eb; }
+.change .when, .change .was, .change .now { font-size: .92rem; margin-top: .15rem; }
+.tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-radius: .25rem; padding: .05rem .4rem; margin-right: .3rem; }
+.tag.title { background: #fef3c7; color: #92400e; }
+.tag.move { background: #dbeafe; color: #1e3a8a; }
+.tag.add { background: #dcfce7; color: #166534; }
+.tag.rm { background: #fee2e2; color: #991b1b; }
+del { color: #6b7280; }
+.done { margin-top: .75rem; font-size: .9rem; }
+table.board { width: 100%; border-collapse: collapse; font-size: .92rem; margin-bottom: .5rem; }
+.board th, .board td { text-align: left; vertical-align: top; padding: .35rem .5rem; border-bottom: 1px solid #e5e7eb; }
+.board thead th { background: #f3f4f6; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; }
+.board tbody.room th { background: #f9fafb; width: 12rem; border-right: 1px solid #e5e7eb; }
+.board td.t { white-space: nowrap; width: 9rem; }
+.board tr.changed td { background: #fffbeb; }
+.board .title { font-weight: 600; }
+.board details summary { cursor: pointer; color: #1d4ed8; font-size: .82rem; }
+.board dl { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .75rem; margin: .3rem 0 .2rem; font-size: .85rem; }
+.board dt { font-weight: 600; color: #374151; }
+@media print {
+  .board details summary { display: none; }
+  h2 { break-after: avoid; } tbody.room { break-inside: avoid; }
+}

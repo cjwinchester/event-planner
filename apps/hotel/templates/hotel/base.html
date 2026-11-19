@@ -1,0 +1,17 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>{% block title %}{{ event.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/hotel.css' %}">
+</head>
+<body><main class="hotel">{% block main %}{% endblock %}</main>
+<script>
+  // Printouts show every session's details (closed <details> don't print their contents).
+  window.addEventListener("beforeprint", () => document.querySelectorAll("details").forEach((d) => { d.open = true; }));
+</script>
+</body>
+</html>

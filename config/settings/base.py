@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "apps.planner",
     "apps.attendees",
     "apps.portal",
+    "apps.hotel",
 ]
 
 MIDDLEWARE = [

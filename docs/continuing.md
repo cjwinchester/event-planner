@@ -146,6 +146,19 @@ clean.
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
 
+## Hotel links (2026-11-19)
+
+`apps.hotel`: an Organization's staff create a private, revocable link per hotel/venue (no
+login; expires 7 days after the event). The hotel's page shows **changes to make on the
+board readers** first (title changes, then moves, new sessions, removals), then **every
+programmed time block in every room** by day, each with a "Details" dropdown (setup,
+headcount, A/V, F&B, hotel notes; opened when printed). From `Event.hotel_changes_from`
+(default: the day before the event) every board-visible change to a session (title, room,
+time; unplacing/canceling/deleting = removal) is folded into one open `ScheduleChange` per
+session (reverts disappear) via Session save/delete signals. Organization admins mark changes
+done once they've confirmed the hotel updated its boards. Not yet: emailing the hotel
+(digest), logistics items on the hotel page.
+
 ## Per-event copies of shared records (2026-11-19)
 
 Schedules read what they show about a speaker from their `EventSpeaker` for that event
@@ -192,18 +205,6 @@ Open:
   placed by "Fill rooms", not their real rooms. The real layout can be recovered by
   grouping the join-link PDF's links by meeting ID (only room labels stored).
 
-- **Hotel share link + hotel change tracking** (requested 2026-11-13). A read-only,
-  revocable link (no login) for hotel staff. From a per-event cutoff (a few days before the
-  conference), changes to scheduled session titles are recorded and float to the top of the
-  hotel's view, since the hotel retypes titles into its board readers by hand. An org admin
-  confirms each change was made and marks it done (no integration with board readers is
-  possible). Draft design, awaiting answers:
-  - also track cancellations, room/time moves and late additions?
-  - consolidate repeated edits of one session into a single pending row;
-  - who can mark a change done;
-  - link expiry.
-
-  The hotel spec sheet ("For Hotel" orders) is the natural second section of the same link.
 - **Speaker reconciliation** (dedupe/merge across events): deferred by choice; design notes are
   in the findings below.
 

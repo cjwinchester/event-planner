@@ -154,6 +154,12 @@ class Event(TimeStampedModel):
         help_text="Until then, sponsors and exhibitors may upload deliverables and answer exhibitor questions "
         "in the portal. Blank: until the event starts.",
     )
+    hotel_changes_from = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="From then on, schedule changes are recorded for the hotel's board readers. "
+        "Blank: the day before the event starts.",
+    )
     virtual_meetings = models.BooleanField(
         "create Zoom meetings",
         default=False,

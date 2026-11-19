@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Hotel · {{ event.name }}{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}{% endblock %}
+{% block main %}
+{% url 'planner:hotel-action' event.organization.slug event.slug as action_url %}
+<main class="mx-auto max-w-5xl p-6">
+  <h1 class="mb-1 text-xl font-semibold">Hotel</h1>
+  <p class="mb-4 max-w-3xl text-sm text-gray-600">Send the hotel a private link (no login) showing every programmed time block in every room, with setup, A/V and F&amp;B details, plus the changes they need to retype into their board readers. Once you've confirmed the hotel made a change, an Organization admin marks it done.</p>
+
+  <section class="mb-6 rounded border border-gray-200 bg-white p-4 text-sm">
+    <h2 class="mb-2 font-semibold">Links</h2>
+    <ul class="mb-3 space-y-1">
+      {% for l in links %}
+        <li class="flex flex-wrap items-center gap-2 {% if not l.is_active %}text-gray-400{% endif %}">
+          <strong>{{ l.label }}</strong>{% if l.venue %}<span class="text-gray-500">{{ l.venue.name }} rooms</span>{% endif %}
+          {% if l.is_active %}
+            <input class="input w-auto flex-1" readonly value="{{ request.scheme }}://{{ request.get_host }}{% url 'hotel:home' l.token %}" onclick="this.select()" aria-label="Link for {{ l.label }}">
+            <span class="text-xs text-gray-500">{% if l.last_viewed_at %}viewed {{ l.view_count }}×, last {{ l.last_viewed_at|date:"M j g:i A" }}{% else %}not opened yet{% endif %} · expires {{ l.expires_at|date:"M j" }}</span>
+            <form method="post" action="{{ action_url }}">{% csrf_token %}<input type="hidden" name="link" value="{{ l.pk }}"><button class="text-xs text-red-700" name="action" value="revoke" onclick="return confirm('Revoke this link?')">revoke</button></form>
+          {% else %}<span class="text-xs">{% if l.revoked_at %}revoked{% else %}expired{% endif %}</span>{% endif %}
+        </li>
+      {% empty %}<li class="text-gray-500">No links yet.</li>{% endfor %}
+    </ul>
+    <form method="post" action="{{ action_url }}" class="inline-fields">{% csrf_token %}
+      <input type="hidden" name="action" value="create">{{ link_form.label }}{{ link_form.venue }}<button class="btn-secondary">Create link</button>
+    </form>
+  </section>
+
+  <section class="mb-6 rounded border border-gray-200 bg-white p-4 text-sm">
+    <h2 class="font-semibold">Change tracking</h2>
+    <p class="text-gray-600">{% if tracking %}Recording changes since{% else %}Starts recording changes{% endif %} <strong>{{ cutoff|date:"l, F j, g:i A T" }}</strong>{% if cutoff_is_default %} (the day before the event; the default){% endif %}. Before then the hotel works from the full schedule on its link.</p>
+    <form method="post" action="{{ action_url }}" class="mt-2 flex flex-wrap items-end gap-2">{% csrf_token %}
+      <input type="hidden" name="action" value="cutoff">
+      <label class="field mb-0"><span>Start recording at ({{ event.timezone }}; blank = default)</span>{{ cutoff_form.cutoff }}</label>
+      <button class="btn-secondary">Save</button>
+    </form>
+  </section>
+
+  <div class="mb-2 flex items-center gap-3">
+    <h2 class="text-lg font-semibold">Changes for the hotel ({{ changes|length }})</h2>
+    {% if changes and is_admin %}<form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<button class="btn-secondary" name="action" value="done_all" onclick="return confirm('Mark every change done? Only if the hotel confirmed them all.')">Mark all done</button></form>{% endif %}
+  </div>
+  {% if not is_admin and changes %}<p class="mb-2 text-xs text-gray-500">Only Organization admins can mark changes done.</p>{% endif %}
+  <ul class="space-y-2">
+    {% for r in changes %}
+      <li class="rounded border border-gray-200 bg-white p-3 text-sm">
+        <div class="flex flex-wrap items-baseline gap-2">
+          <span class="badge {% if r.kind == 'removed' %}status-decline_queue{% elif r.kind == 'added' %}status-accept_queue{% else %}status-waitlisted{% endif %}">{% if r.kind == "changed" and "title" in r.fields %}New title{% elif r.kind == "changed" %}Moved{% else %}{{ r.c.get_kind_display }}{% endif %}</span>
+          <strong>{{ r.c.title }}</strong>
+          <span class="text-xs text-gray-500">updated {{ r.c.updated_at|date:"M j g:i A" }}</span>
+          {% if is_admin %}<form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<input type="hidden" name="change" value="{{ r.c.pk }}"><button class="text-xs text-blue-700" name="action" value="done">mark done</button></form>{% endif %}
+        </div>
+        {% if r.before and r.after %}
+          <p class="mt-1 text-gray-700">{% if "title" in r.fields %}<del>{{ r.before.title }}</del> → {{ r.after.title }}<br>{% endif %}
+            {% if "room" in r.fields or "starts_at" in r.fields or "ends_at" in r.fields %}<del>{{ r.before.start|date:"D M j g:i A" }}–{{ r.before.end|time:"g:i A" }} · {{ r.before.room }}</del> → {{ r.after.start|date:"D M j g:i A" }}–{{ r.after.end|time:"g:i A" }} · {{ r.after.room }}{% endif %}</p>
+        {% elif r.after %}<p class="mt-1 text-gray-700">{{ r.after.start|date:"D M j g:i A" }}–{{ r.after.end|time:"g:i A" }} · {{ r.after.room }}</p>
+        {% else %}<p class="mt-1 text-gray-700"><del>{{ r.before.start|date:"D M j g:i A" }}–{{ r.before.end|time:"g:i A" }} · {{ r.before.room }}</del></p>{% endif %}
+      </li>
+    {% empty %}<li class="text-sm text-gray-500">No changes waiting.</li>{% endfor %}
+  </ul>
+  {% if done %}
+    <details class="mt-4 text-sm"><summary class="cursor-pointer">Done ({{ done|length }})</summary>
+      <ul class="mt-1">{% for r in done %}<li>{{ r.c.get_kind_display }}: {{ r.c.title }} <span class="text-xs text-gray-500">by {{ r.c.done_by|default:"—" }}, {{ r.c.done_at|date:"M j g:i A" }}</span></li>{% endfor %}</ul>
+    </details>
+  {% endif %}
+</main>
+{% endblock %}

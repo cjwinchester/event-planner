@@ -25,6 +25,7 @@ urlpatterns = [
     path("plan/", include("apps.planner.urls")),
     path("my/", include("apps.attendees.urls")),
     path("portal/", include("apps.portal.urls")),
+    path("hotel/", include("apps.hotel.urls")),
     path("", portal_views.home, name="home"),
 ]
 

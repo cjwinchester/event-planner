@@ -1,0 +1,86 @@
+{% extends "hotel/base.html" %}
+{% load tz %}
+{% block title %}{{ event.name }} · {{ link.label }}{% endblock %}
+{% block main %}
+{% timezone event.timezone %}
+<header class="head">
+  <h1>{{ event.name }}</h1>
+  <p>{{ event.organization.name }} · {{ event.start_date|date:"F j" }}–{{ event.end_date|date:"F j, Y" }} · for {{ link.label }}{% if link.venue %} ({{ link.venue.name }} rooms){% endif %}</p>
+  <p class="hint">Times are {{ event.timezone }}. This page always shows the current schedule; please keep it private.</p>
+</header>
+
+<section aria-labelledby="changes-h" class="changes">
+  <h2 id="changes-h">Changes to make on the boards {% if changes %}<span class="count">{{ changes|length }}</span>{% endif %}</h2>
+  {% if changes %}
+    <p class="hint">Changes since {{ tracking_from|date:"F j, g:i A" }}. Title changes first. The organizers will confirm each one with you.</p>
+    <ol class="change-list">
+      {% for r in changes %}
+        <li class="change {{ r.kind }}">
+          {% if r.kind == "added" %}
+            <span class="tag add">New session</span> <strong>{{ r.after.title }}</strong>
+            <div class="when">{% include "hotel/_when.html" with st=r.after %}</div>
+          {% elif r.kind == "removed" %}
+            <span class="tag rm">Take off the boards</span> <del>{{ r.before.title }}</del>
+            <div class="when"><del>{% include "hotel/_when.html" with st=r.before %}</del></div>
+          {% else %}
+            {% if "title" in r.fields %}<span class="tag title">New title</span>{% else %}<span class="tag move">Moved</span>{% endif %}
+            {% if "title" in r.fields %}
+              <div class="was">Was: <del>{{ r.before.title }}</del></div>
+              <div class="now">Now: <strong>{{ r.after.title }}</strong></div>
+            {% else %}<strong>{{ r.after.title }}</strong>{% endif %}
+            {% if "room" in r.fields or "starts_at" in r.fields or "ends_at" in r.fields %}
+              <div class="when">Was <del>{% include "hotel/_when.html" with st=r.before %}</del><br>Now <strong>{% include "hotel/_when.html" with st=r.after %}</strong></div>
+            {% else %}
+              <div class="when">{% include "hotel/_when.html" with st=r.after %}</div>
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p>No changes to make right now.</p>
+  {% endif %}
+  {% if done %}
+    <details class="done"><summary>Already confirmed ({{ done|length }})</summary>
+      <ul>{% for r in done %}<li>{{ r.c.get_kind_display }}: {{ r.c.title }} <span class="hint">confirmed {{ r.c.done_at|date:"M j, g:i A" }}</span></li>{% endfor %}</ul>
+    </details>
+  {% endif %}
+</section>
+
+<section aria-labelledby="sched-h">
+  <h2 id="sched-h">Every room, every time block</h2>
+  {% for d in days %}
+    <h3 class="day">{{ d.day|date:"l, F j" }}</h3>
+    <table class="board">
+      <thead><tr><th scope="col">Room</th><th scope="col">Time</th><th scope="col">Session &amp; details</th></tr></thead>
+      {% for room in d.rooms %}
+        <tbody class="room">
+          {% for b in room.blocks %}
+            <tr class="{% if b.changed %}changed{% endif %}">
+              {% if forloop.first %}<th scope="rowgroup" rowspan="{{ room.blocks|length }}">{{ room.name }}</th>{% endif %}
+              <td class="t">{{ b.start|time:"g:i A" }}–{{ b.end|time:"g:i A" }}</td>
+              <td>
+                <span class="title">{{ b.s.title }}</span>{% if b.changed %} <span class="tag title">changed</span>{% endif %}
+                {% with s=b.s %}{% if s.setup or s.expected_headcount or s.av_requirements or s.fnb_requirements or s.hotel_notes %}
+                  <details><summary>Details</summary>
+                    <dl>
+                      {% if s.setup %}<dt>Setup</dt><dd>{{ s.get_setup_display }}</dd>{% endif %}
+                      {% if s.expected_headcount %}<dt>Expected headcount</dt><dd>{{ s.expected_headcount }}</dd>{% endif %}
+                      {% if s.av_requirements %}<dt>A/V</dt><dd>{{ s.av_requirements|linebreaksbr }}</dd>{% endif %}
+                      {% if s.fnb_requirements %}<dt>Food &amp; beverage</dt><dd>{{ s.fnb_requirements|linebreaksbr }}</dd>{% endif %}
+                      {% if s.hotel_notes %}<dt>Notes</dt><dd>{{ s.hotel_notes|linebreaksbr }}</dd>{% endif %}
+                    </dl>
+                  </details>
+                {% endif %}{% endwith %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      {% endfor %}
+    </table>
+  {% empty %}
+    <p>No sessions are in rooms yet.</p>
+  {% endfor %}
+</section>
+{% endtimezone %}
+{% endblock %}
