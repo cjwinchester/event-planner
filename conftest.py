@@ -92,7 +92,7 @@ def world(db, django_user_model):
 def make_session(world):
     from apps.program.models import Session, SessionSpeaker
 
-    def _make(title="A session", *, room=None, start=None, end=None, speakers=(), edited=True, **kw):
+    def _make(title="A session", *, room=None, start=None, end=None, speakers=(), edited=True, confirmed=True, **kw):
         session = Session.objects.create(
             event=kw.pop("event", world.event),
             title=title,
@@ -103,7 +103,7 @@ def make_session(world):
             **kw,
         )
         for i, sp in enumerate(speakers):
-            SessionSpeaker.objects.create(session=session, speaker=sp, sort_order=i)
+            SessionSpeaker.objects.create(session=session, speaker=sp, sort_order=i, is_confirmed=confirmed)
         return session
 
     return _make

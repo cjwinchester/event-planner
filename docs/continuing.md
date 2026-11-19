@@ -48,7 +48,16 @@ the most recent (`speakers.merging`: links moved, blanks filled, unique collisio
 speaker revocations win). Pages: overview with the public card, profile edit (public vs
 private fields, headshot, links), sharing (grant/turn off per org). Imported profiles have no
 email, so they're only claimable once staff add one (name-based claiming: open question).
-Parts B (my sessions) and C (pitches/open calls) are next.
+**Part B** (`/speak/sessions/`): each session role with event-local time/room (only once the
+schedule is published), co-speakers, confirm ("only confirmed speakers are published";
+existing/imported rows were confirmed by migration), withdraw (always allowed; removes the
+role), edit title/summary/description until `Event.speaker_edit_deadline` (blank = staff
+only), and per-event speaker-info questions + recording consent (stored on `EventSpeaker`).
+Staff: **Speaker updates** page (before/after diffs, mark reviewed, set the deadline, list of
+unconfirmed speakers) and "mark confirmed" in the grid's session panel.
+Email: one Google Workspace account via SMTP + app password (`EMAIL_HOST_USER`,
+`EMAIL_HOST_PASSWORD`; console when unset); site name "Event Planner" in emails.
+Part C (pitches/open calls; co-speakers read-only once they have an account) is next.
 
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's

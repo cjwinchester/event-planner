@@ -28,6 +28,9 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
 - **Pitch review is blind**: never expose other staff's votes for a pitch unless
   `pitches.services.votes_visible()` says so. Only org admins finalize. Call merging pitches
   "combo" in anything user-facing.
+- **Published speakers are confirmed speakers**: public bundles include only `SessionSpeaker.is_confirmed` rows.
+  Speakers confirm in the portal (or staff mark it); speaker portal edits/confirmations/withdrawals go through
+  `program.speaker_actions` (deadline check + `SpeakerUpdate` log).
 - **Scheduling writes** go through `program.scheduling.place_*` (it locks the event and
   checks conflicts). Don't save room/time changes directly in new code paths.
 - **Times** are stored in UTC; display and accept them in `event.timezone`.

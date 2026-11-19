@@ -65,3 +65,63 @@ class GrantForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["organization"].queryset = Organization.objects.exclude(pk__in=exclude_ids).order_by("name")
         self.fields["organization"].widget.attrs["class"] = "input"
+
+
+class SessionEditForm(forms.Form):
+    title = forms.CharField(max_length=500, widget=forms.TextInput(attrs={"class": "input"}))
+    summary = forms.CharField(
+        required=False, widget=forms.Textarea(attrs={"class": "input", "rows": 2}), help_text="One or two sentences."
+    )
+    description = forms.CharField(required=False, widget=forms.Textarea(attrs={"class": "input", "rows": 8}))
+
+
+class WithdrawForm(forms.Form):
+    reason = forms.CharField(
+        required=False,
+        label="Anything the organizers should know? (optional)",
+        widget=forms.Textarea(attrs={"class": "input", "rows": 3}),
+    )
+
+
+class EventInfoForm(forms.Form):
+    """The event's speaker-info questions (pitches.FormQuestion, form=speaker_info) plus recording consent."""
+
+    recording_consent = forms.TypedChoiceField(
+        label="May this event record your sessions?",
+        choices=[("", "Not answered yet"), ("yes", "Yes"), ("no", "No")],
+        coerce=lambda v: {"yes": True, "no": False}.get(v),
+        empty_value=None,
+        required=False,
+        widget=forms.RadioSelect,
+    )
+
+    def __init__(self, *args, questions=(), **kwargs):
+        from apps.pitches.models import FormQuestion
+
+        super().__init__(*args, **kwargs)
+        kind = FormQuestion.Kind
+        self.questions = list(questions)
+        for q in self.questions:
+            common = {"label": q.prompt, "help_text": q.help_text, "required": q.required}
+            if q.kind == kind.LONG_TEXT:
+                field = forms.CharField(widget=forms.Textarea(attrs={"rows": 4, "class": "input"}), **common)
+            elif q.kind == kind.EMAIL:
+                field = forms.EmailField(widget=forms.EmailInput(attrs={"class": "input"}), **common)
+            elif q.kind == kind.URL:
+                field = forms.URLField(widget=forms.URLInput(attrs={"class": "input"}), **common)
+            elif q.kind == kind.INTEGER:
+                field = forms.IntegerField(widget=forms.NumberInput(attrs={"class": "input"}), **common)
+            elif q.kind == kind.BOOLEAN:
+                field = forms.BooleanField(**{**common, "required": False})
+            elif q.kind == kind.SINGLE_CHOICE:
+                field = forms.ChoiceField(choices=[(c, c) for c in q.choices], widget=forms.RadioSelect, **common)
+            elif q.kind == kind.MULTI_CHOICE:
+                field = forms.MultipleChoiceField(
+                    choices=[(c, c) for c in q.choices], widget=forms.CheckboxSelectMultiple, **common
+                )
+            else:
+                field = forms.CharField(widget=forms.TextInput(attrs={"class": "input"}), **common)
+            self.fields[f"q_{q.slug}"] = field
+
+    def answers(self) -> dict:
+        return {q.slug: self.cleaned_data.get(f"q_{q.slug}") for q in self.questions}

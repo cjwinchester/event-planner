@@ -1,0 +1,25 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ event.name }}: speaker details{% endblock %}
+{% block main %}
+<p><a href="{% url 'portal:sessions' %}">← Your sessions</a></p>
+<h1>Speaker details for {{ event.name }}</h1>
+<p>Only {{ event.organization.name }} sees these answers.</p>
+<form method="post" class="portal-form" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <fieldset>
+    {% for field in form %}
+      {% if field.name == "recording_consent" %}
+        <div class="pfield"><fieldset class="choices"><legend>{{ field.label }}</legend>{{ field }}</fieldset></div>
+      {% elif field.field.widget.input_type == "checkbox" and not field.field.choices %}
+        <div class="pfield"><label>{{ field }} {{ field.label }}</label>{% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}</div>
+      {% elif field.field.choices %}
+        <div class="pfield"><fieldset class="choices"><legend>{{ field.label }}{% if field.field.required %} *{% endif %}</legend>{{ field }}</fieldset>{% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}</div>
+      {% else %}
+        {% include "portal/_field.html" %}
+      {% endif %}
+    {% endfor %}
+  </fieldset>
+  <button class="btn">Save</button>
+</form>
+{% endblock %}

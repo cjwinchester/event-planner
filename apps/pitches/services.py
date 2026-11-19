@@ -164,6 +164,11 @@ def confirm(target: PitchTarget) -> None:
         raise PitchWorkflowError("Only accepted pitches can be confirmed.")
     target.confirmed_at = timezone.now()
     target.save(update_fields=["confirmed_at", "updated_at"])
+    if target.session_id:  # confirming the pitch confirms the pitcher on its session
+        now = timezone.now()
+        target.session.session_speakers.filter(speaker=target.pitch.submitted_by, is_confirmed=False).update(
+            is_confirmed=True, confirmed_at=now
+        )
 
 
 @transaction.atomic

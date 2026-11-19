@@ -53,3 +53,8 @@
 .part-list { @apply mt-1 grid gap-2 sm:grid-cols-2; }
 .part-list li { @apply rounded border border-gray-200 p-2; }
 .part-list label { @apply flex items-center gap-2 text-sm; }
+
+/* Status badges used across planner pages (also in pitches.css for the pitch table) */
+.badge.status-accept_queue { background: #dcfce7; color: #166534; }
+.badge.status-decline_queue { background: #fee2e2; color: #991b1b; }
+.badge.status-waitlisted { background: #fef3c7; color: #92400e; }

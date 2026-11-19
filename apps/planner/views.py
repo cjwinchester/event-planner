@@ -110,6 +110,7 @@ def _panel(request, session, *, form=None, placement=None, message="", errors=()
         "message": message,
         "errors": errors,
         "role_choices": SessionSpeaker.Role.choices,
+        "updates": session.speaker_updates.filter(reviewed_at__isnull=True).select_related("speaker")[:5],
     }
     return render(request, "planner/partials/session_panel.html", context, status=status)
 
@@ -164,6 +165,18 @@ def session_speaker_add(request, pk):
         row.save()
         EventSpeaker.objects.get_or_create(event=session.event, speaker=speaker)
     return _refresh(_panel(request, session, message=f"Added {speaker}."))
+
+
+@login_required
+@require_POST
+def session_speaker_confirm(request, pk, row_pk):
+    """Staff confirm a speaker on their behalf (e.g. they confirmed by email)."""
+    from apps.program import speaker_actions
+
+    session = _session_for(request, pk, Role.STAFF)
+    row = get_object_or_404(SessionSpeaker, pk=row_pk, session=session)
+    speaker_actions.confirm(row, request.user, by_staff=True)
+    return _refresh(_panel(request, session, message=f"{row.speaker} marked confirmed."))
 
 
 @login_required

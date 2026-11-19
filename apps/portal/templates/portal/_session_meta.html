@@ -1,0 +1,7 @@
+{% load tz %}
+<p class="meta">
+  <strong>{{ row.event.name }}</strong> · {{ row.event.organization.name }}<br>
+  {% if row.session.is_canceled %}<span class="tag tag-warn">Canceled</span>
+  {% elif row.starts %}{% timezone row.event.timezone %}{{ row.starts|date:"l, F j" }}, {{ row.starts|time:"g:i A" }}–{{ row.ends|time:"g:i A T" }}{% endtimezone %}{% if row.room %} · {{ row.room }}{% endif %}
+  {% else %}Time and room to be announced{% endif %}
+</p>

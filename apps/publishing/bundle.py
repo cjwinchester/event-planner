@@ -112,7 +112,10 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
         "assets",
         Prefetch(
             "session_speakers",
-            queryset=SessionSpeaker.objects.select_related("speaker").order_by("sort_order", "pk"),
+            # Only speakers who confirmed are published (they confirm in the speaker portal).
+            queryset=(SessionSpeaker.objects.filter(is_confirmed=True) if public else SessionSpeaker.objects.all())
+            .select_related("speaker")
+            .order_by("sort_order", "pk"),
         ),
     ).order_by("starts_at", "public_id")
     sessions = list(sessions_qs)
@@ -163,6 +166,7 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
                     "speaker_id": ss.speaker.public_id,
                     "role": ss.role,
                     "affiliation": ss.affiliation_override or ss.speaker.affiliation,
+                    **({} if public else {"confirmed": ss.is_confirmed}),
                 }
                 for ss in session_speakers
             ],

@@ -11,9 +11,10 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="portal-header">
     <a class="portal-brand" href="{% url 'portal:home' %}">Speaker portal</a>
-    {% url 'portal:home' as home_url %}{% url 'portal:profile' as profile_url %}{% url 'portal:sharing' as sharing_url %}
+    {% url 'portal:home' as home_url %}{% url 'portal:profile' as profile_url %}{% url 'portal:sharing' as sharing_url %}{% url 'portal:sessions' as sessions_url %}
     <nav aria-label="Speaker portal">
       <a href="{{ home_url }}" {% if request.path == home_url %}aria-current="page"{% endif %}>Overview</a>
+      <a href="{{ sessions_url }}" {% if request.path == sessions_url %}aria-current="page"{% endif %}>Sessions</a>
       <a href="{{ profile_url }}" {% if request.path == profile_url %}aria-current="page"{% endif %}>Profile</a>
       <a href="{{ sharing_url }}" {% if request.path == sharing_url %}aria-current="page"{% endif %}>Sharing</a>
     </nav>

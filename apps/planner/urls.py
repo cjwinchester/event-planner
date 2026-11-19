@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import event_views, pass_views, pitch_views, room_views, views
+from . import event_views, pass_views, pitch_views, room_views, speaker_views, views
 
 app_name = "planner"
 urlpatterns = [
@@ -13,6 +13,11 @@ urlpatterns = [
         "sessions/<int:pk>/speakers/<int:row_pk>/remove/", views.session_speaker_remove, name="session-speaker-remove"
     ),
     path("sessions/<int:pk>/speakers/search/", views.speaker_search, name="speaker-search"),
+    path(
+        "sessions/<int:pk>/speakers/<int:row_pk>/confirm/",
+        views.session_speaker_confirm,
+        name="session-speaker-confirm",
+    ),
     path("<slug:org_slug>/<slug:event_slug>/grid/", views.grid, name="grid"),
     path("<slug:org_slug>/<slug:event_slug>/pitches/", pitch_views.pitches, name="pitches"),
     path("<slug:org_slug>/<slug:event_slug>/pitches/bulk/", pitch_views.pitch_bulk, name="pitch-bulk"),
@@ -39,6 +44,15 @@ urlpatterns = [
     path("<slug:org_slug>/<slug:event_slug>/links/<int:pk>/", pass_views.pass_action, name="pass-action"),
     path("<slug:org_slug>/<slug:event_slug>/run-of-show/", pass_views.run_of_show, name="run-of-show"),
     path("<slug:org_slug>/<slug:event_slug>/run-of-show/zoom/", pass_views.zoom_action, name="zoom-action"),
+    path("<slug:org_slug>/<slug:event_slug>/speakers/updates/", speaker_views.speaker_updates, name="speaker-updates"),
+    path(
+        "<slug:org_slug>/<slug:event_slug>/speakers/updates/review/",
+        speaker_views.speaker_updates_review,
+        name="speaker-updates-review",
+    ),
+    path(
+        "<slug:org_slug>/<slug:event_slug>/speakers/deadline/", speaker_views.speaker_deadline, name="speaker-deadline"
+    ),
     path("<slug:org_slug>/<slug:event_slug>/slots/", views.slots, name="slots"),
     path("<slug:org_slug>/<slug:event_slug>/slots/copy/", views.slots_copy, name="slots-copy"),
     path("<slug:org_slug>/<slug:event_slug>/slots/<int:slot_pk>/", views.slot_edit, name="slot-edit"),

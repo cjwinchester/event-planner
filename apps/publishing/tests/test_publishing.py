@@ -183,3 +183,23 @@ def test_one_failing_format_does_not_block_others(world, scheduled, monkeypatch)
     run = publish_event(world.event, formats=["json", "txt"])
     assert run.status == run.Status.PARTIAL and "txt" in run.message
     assert [f["format"] for f in run.files] == ["json"]
+
+
+@pytest.mark.django_db
+def test_only_confirmed_speakers_are_published(world, make_session):
+    from apps.publishing.bundle import Audience, build_event_bundle
+    from conftest import at
+
+    world.event.publish_schedule = True
+    world.event.save()
+    make_session("Mixed panel", room=world.er_a, start=at(5, 10), end=at(5, 11), speakers=[world.alice])
+    s = make_session(
+        "Mixed panel 2", room=world.er_b, start=at(5, 10), end=at(5, 11), speakers=[world.bob], confirmed=False
+    )
+    public = build_event_bundle(world.event, Audience.PUBLIC)
+    names = {sp["last_name"] for sp in public["speakers"]}
+    assert "Analyst" in names and "Builder" not in names
+    assert next(x for x in public["sessions"] if x["id"] == s.public_id)["speakers"] == []
+    internal = build_event_bundle(world.event, Audience.INTERNAL)
+    row = next(x for x in internal["sessions"] if x["id"] == s.public_id)["speakers"][0]
+    assert row["confirmed"] is False

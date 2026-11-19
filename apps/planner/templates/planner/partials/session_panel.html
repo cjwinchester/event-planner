@@ -29,12 +29,24 @@
     {% if can_edit %}<button class="btn">Save</button>{% endif %}
   </form>
 
+  {% if updates %}
+    <div class="panel-note">
+      <p class="text-sm font-semibold">Speaker updates to review</p>
+      <ul class="text-xs">{% for u in updates %}<li>{{ u.created_at|date:"M j g:i A" }}: {{ u.speaker }} {{ u.get_kind_display|lower }}{% if u.changes %} ({{ u.changes|join:", " }}){% endif %}</li>{% endfor %}</ul>
+      <a class="text-xs text-blue-700" href="{% url 'planner:speaker-updates' event.organization.slug event.slug %}">Review speaker updates</a>
+    </div>
+  {% endif %}
+
   <h3 class="panel-section">Speakers</h3>
   <ul class="panel-speakers">
     {% for row in speakers %}
       <li>
-        <span>{{ row.speaker }}{% if row.speaker.affiliation %}, <span class="text-gray-500">{{ row.speaker.affiliation }}</span>{% endif %} <em class="text-xs text-gray-500">{{ row.get_role_display }}</em></span>
-        {% if can_edit %}<button class="text-xs text-red-700" hx-post="{% url 'planner:session-speaker-remove' session.pk row.pk %}" hx-target="#side-panel-body">remove</button>{% endif %}
+        <span>{{ row.speaker }}{% if row.speaker.affiliation %}, <span class="text-gray-500">{{ row.speaker.affiliation }}</span>{% endif %} <em class="text-xs text-gray-500">{{ row.get_role_display }}</em>
+          {% if row.is_confirmed %}<span class="badge status-accept_queue" title="Listed on the published schedule">confirmed</span>{% else %}<span class="badge status-waitlisted" title="Not published until confirmed">not confirmed</span>{% endif %}</span>
+        {% if can_edit %}
+          {% if not row.is_confirmed %}<button class="text-xs text-blue-700" hx-post="{% url 'planner:session-speaker-confirm' session.pk row.pk %}" hx-target="#side-panel-body" title="Confirm on the speaker's behalf">mark confirmed</button>{% endif %}
+          <button class="text-xs text-red-700" hx-post="{% url 'planner:session-speaker-remove' session.pk row.pk %}" hx-target="#side-panel-body">remove</button>
+        {% endif %}
       </li>
     {% empty %}<li class="text-sm text-gray-500">No speakers yet.</li>{% endfor %}
   </ul>

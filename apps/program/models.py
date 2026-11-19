@@ -371,7 +371,11 @@ class SessionSpeaker(models.Model):
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.SPEAKER)
     sort_order = models.PositiveIntegerField(default=0)
     affiliation_override = models.CharField(max_length=255, blank=True, help_text="As printed for this session.")
+    # Only confirmed speakers are published (the speaker confirms in the portal,
+    # or staff mark it on their behalf). Rows that predate this rule were
+    # confirmed by migration so published schedules didn't change.
     is_confirmed = models.BooleanField(default=False)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
 
     ORG_PATH = "session__event__organization"
     objects = OrgScopedManager()
@@ -614,3 +618,45 @@ class LogisticsItem(TimeStampedModel, RoomUsage):
             errors = [c for c in check_logistics_item(self) if c.severity == Severity.ERROR]
             if errors:
                 raise ValidationError([c.message for c in errors])
+
+
+class SpeakerUpdate(models.Model):
+    """Something a speaker did in the portal that staff should know about:
+    edited session details (applied immediately; `changes` holds
+    {field: [before, after]}), confirmed, or withdrew. Staff mark each one
+    reviewed in the planner. The session title is snapshotted because a
+    withdrawal can outlive the speaker's link to the session."""
+
+    class Kind(models.TextChoices):
+        EDITED = "edited", "Edited session details"
+        CONFIRMED = "confirmed", "Confirmed"
+        WITHDREW = "withdrew", "Withdrew"
+
+    event = models.ForeignKey("events.Event", on_delete=models.CASCADE, related_name="speaker_updates")
+    session = models.ForeignKey(
+        Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="speaker_updates"
+    )
+    session_title = models.CharField(max_length=500)
+    speaker = models.ForeignKey(
+        "speakers.SpeakerProfile", null=True, on_delete=models.SET_NULL, related_name="session_updates"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    changes = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    ORG_PATH = "event__organization"
+    objects = OrgScopedManager()
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["event", "reviewed_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.speaker}: {self.get_kind_display()} — {self.session_title}"

@@ -34,6 +34,8 @@ def dashboard(live_server, page, client, world, django_user_model):
         )
         page.goto(f"{live_server.url}{reverse('planner:pitches', args=[world.org.slug, world.event.slug])}")
         page.wait_for_selector(".pitch-row")
+        # Keyboard shortcuts need pitches.js and htmx (both deferred) before keys are pressed.
+        page.wait_for_function("document.documentElement.dataset.pitchesReady === '1' && !!window.htmx")
         return page
 
     return open_as

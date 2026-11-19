@@ -142,6 +142,12 @@ class Event(TimeStampedModel):
     additional_links = models.JSONField(
         default=list, blank=True, help_text='Extra public links: [{"label": "...", "url": "..."}].'
     )
+    speaker_edit_deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Until then, speakers on a session may edit its details in the speaker portal. "
+        "Blank: only staff can. Withdrawing is always allowed.",
+    )
     virtual_meetings = models.BooleanField(
         "create Zoom meetings",
         default=False,

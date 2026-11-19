@@ -1,0 +1,46 @@
+{% extends "portal/base.html" %}
+{% load tz %}
+{% block title %}{{ row.session.title }}{% endblock %}
+{% block main %}
+<p><a href="{% url 'portal:sessions' %}">← Your sessions</a></p>
+<h1>{{ row.session.title }}</h1>
+{% include "portal/_session_meta.html" %}
+{% if row.co_speakers %}<p>With {{ row.co_speakers|join:", " }}</p>{% endif %}
+
+{% if row.upcoming and not row.session.is_canceled %}
+  <section class="panel-box" aria-labelledby="confirm-h">
+    <h2 id="confirm-h">Your participation</h2>
+    {% if row.ss.is_confirmed %}
+      <p><span class="tag tag-ok">Confirmed</span>{% if row.ss.confirmed_at %} on {{ row.ss.confirmed_at|date:"M j, Y" }}{% endif %}. You'll be listed on the published schedule.</p>
+    {% else %}
+      <p>Please confirm you'll take part. Only confirmed speakers are listed on the published schedule.</p>
+      <form method="post">{% csrf_token %}<button class="btn" name="action" value="confirm">Confirm I'll be there</button></form>
+    {% endif %}
+    <p class="hint">Can't make it? <a href="{% url 'portal:session-withdraw' row.ss.pk %}">Withdraw from this session</a>.</p>
+    {% if my_pass %}<p><a href="{% url 'attendees:home' my_pass.token %}">Your personal schedule and join links</a></p>{% endif %}
+    <p><a href="{% url 'portal:event-info' row.event.pk %}">Speaker details for {{ row.event.name }}</a> (questions from the organizers, recording consent)</p>
+  </section>
+{% endif %}
+
+<section aria-labelledby="details-h">
+  <h2 id="details-h">Session details</h2>
+  {% if form %}
+    <p class="hint">You can edit these until {% timezone row.event.timezone %}{{ deadline|date:"l, F j, g:i A T" }}{% endtimezone %}. Changes go live right away and the organizers are notified.</p>
+    <form method="post" class="portal-form">
+      {% csrf_token %}
+      <fieldset>
+        {% include "portal/_field.html" with field=form.title %}
+        {% include "portal/_field.html" with field=form.summary %}
+        {% include "portal/_field.html" with field=form.description %}
+      </fieldset>
+      <button class="btn" name="action" value="edit">Save changes</button>
+    </form>
+  {% else %}
+    {% if row.session.summary %}<p><em>{{ row.session.summary }}</em></p>{% endif %}
+    <div class="description">{{ row.session.description|striptags|linebreaks }}</div>
+    {% if row.upcoming and not row.session.is_canceled %}
+      <p class="hint">{% if deadline %}Speaker edits closed on {{ deadline|date:"F j" }}.{% else %}Speaker edits aren't open for this event.{% endif %} To change something, contact {{ row.event.organization.name }}.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

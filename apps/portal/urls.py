@@ -8,4 +8,8 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("sharing/", views.sharing_view, name="sharing"),
     path("sharing/<int:org_id>/revoke/", views.sharing_revoke, name="sharing-revoke"),
+    path("sessions/", views.sessions, name="sessions"),
+    path("sessions/<int:pk>/", views.session_detail, name="session"),
+    path("sessions/<int:pk>/withdraw/", views.session_withdraw, name="session-withdraw"),
+    path("events/<int:event_id>/info/", views.event_info, name="event-info"),
 ]

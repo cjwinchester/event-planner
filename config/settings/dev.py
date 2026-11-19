@@ -8,7 +8,6 @@ SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-secret-key-change-me")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none")
 ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = ACCOUNT_EMAIL_VERIFICATION == "mandatory"
-MAILERS = {"default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}}
 
 # A fixed dev key so encrypted integration credentials survive restarts.
 # NEVER use this outside local development.

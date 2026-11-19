@@ -13,4 +13,5 @@ SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=60 * 60 * 24 * 30)
-MAILERS = {"default": {"BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")}}
+if not env("EMAIL_HOST_USER", default=""):
+    raise RuntimeError("EMAIL_HOST_USER (and EMAIL_HOST_PASSWORD) must be set in production: login codes are emailed")

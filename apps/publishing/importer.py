@@ -30,6 +30,7 @@ from datetime import date, datetime
 
 from django.db import transaction
 from django.db.models.functions import Lower
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.commerce.models import Company, DealStatus, ExhibitorBooking, Sponsorship, SponsorshipLevel
@@ -305,7 +306,13 @@ def _import(bundle: dict, org, result: ImportResult) -> None:
                 session=session,
                 speaker=profile,
                 role=ss.get("role", SessionSpeaker.Role.SPEAKER),
-                defaults={"sort_order": i, "affiliation_override": ss.get("affiliation", "")},
+                defaults={
+                    "sort_order": i,
+                    "affiliation_override": ss.get("affiliation", ""),
+                    # Public bundles only carry confirmed speakers; internal ones say so explicitly.
+                    "is_confirmed": ss.get("confirmed", True),
+                    "confirmed_at": timezone.now() if ss.get("confirmed", True) else None,
+                },
             )
             EventSpeaker.objects.get_or_create(
                 event=event, speaker=profile, defaults={"status": EventSpeaker.Status.CONFIRMED}

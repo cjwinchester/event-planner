@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}
+{% block title %}Your sessions{% endblock %}
+{% block main %}
+<h1>Your sessions</h1>
+<h2>Upcoming</h2>
+{% for row in upcoming %}
+  <article class="session-card">
+    <h3><a href="{% url 'portal:session' row.ss.pk %}">{{ row.session.title }}</a></h3>
+    {% include "portal/_session_meta.html" %}
+    <p>
+      {% if row.ss.is_confirmed %}<span class="tag tag-ok">Confirmed</span>
+      {% elif not row.session.is_canceled %}<span class="tag tag-warn">Please confirm</span>{% endif %}
+      {% if row.ss.role != "speaker" %}<span class="tag">{{ row.ss.get_role_display }}</span>{% endif %}
+      {% if row.co_speakers %}<span class="hint">With {{ row.co_speakers|join:", " }}</span>{% endif %}
+    </p>
+    <p class="actions">
+      <a href="{% url 'portal:session' row.ss.pk %}">{% if row.can_edit %}View or edit{% else %}View{% endif %}</a>
+      <a href="{% url 'portal:event-info' row.event.pk %}">Speaker details for {{ row.event.short_name|default:row.event.name }}</a>
+    </p>
+  </article>
+{% empty %}
+  <p>No upcoming sessions. When an organization accepts your pitch or adds you to a session, it shows up here.</p>
+{% endfor %}
+{% if past %}
+  <h2>Past</h2>
+  <ul class="past">
+    {% for row in past %}<li><a href="{% url 'portal:session' row.ss.pk %}">{{ row.session.title }}</a> <span class="hint">{{ row.event.name }}</span></li>{% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

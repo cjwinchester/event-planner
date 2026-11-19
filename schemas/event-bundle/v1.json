@@ -173,7 +173,8 @@
       "properties": {
         "speaker_id": {"type": "string"},
         "role": {"enum": ["speaker", "moderator", "coach", "host"]},
-        "affiliation": {"type": "string", "description": "As printed for this session (overrides profile)."}
+        "affiliation": {"type": "string", "description": "As printed for this session (overrides profile)."},
+        "confirmed": {"type": "boolean", "description": "Internal bundles only. Public bundles list confirmed speakers only."}
       }
     },
     "session": {

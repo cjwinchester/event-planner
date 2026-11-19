@@ -1,0 +1,14 @@
+{% extends "portal/base.html" %}
+{% block title %}Withdraw{% endblock %}
+{% block main %}
+<p><a href="{% url 'portal:session' row.ss.pk %}">← Back</a></p>
+<h1>Withdraw from “{{ row.session.title }}”?</h1>
+{% include "portal/_session_meta.html" %}
+<p>You'll be removed from this session and from the published schedule, and {{ row.event.organization.name }} will be notified. To take part again later, you'd need to ask the organizers.</p>
+<form method="post" class="portal-form">
+  {% csrf_token %}
+  <fieldset>{% include "portal/_field.html" with field=form.reason %}</fieldset>
+  <button class="btn-danger">Withdraw from this session</button>
+  <a href="{% url 'portal:session' row.ss.pk %}">Cancel</a>
+</form>
+{% endblock %}

@@ -42,3 +42,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .link-danger { color: #b91c1c; text-decoration: underline; }
 .inline-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-width: 32rem; }
 .inline-form select { flex: 1; }
+.session-card { background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: .9rem 1rem; margin-bottom: .9rem; }
+.session-card h3 { font-size: 1.1rem; font-weight: 650; }
+.session-card .actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .4rem; }
+.meta { color: #374151; }
+.tag { display: inline-block; font-size: .78rem; font-weight: 600; border-radius: .25rem; padding: .05rem .45rem; background: #e5e7eb; color: #374151; margin-right: .35rem; }
+.tag-ok { background: #dcfce7; color: #166534; }
+.tag-warn { background: #fef3c7; color: #92400e; }
+.panel-box { background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+.past li { margin: .3rem 0; }
+.choices { border: 0 !important; padding: 0 !important; margin: 0 !important; }
+.choices legend { font-weight: 600; font-size: .92rem; margin-bottom: .25rem; }
+.choices label { font-weight: 400; display: flex; gap: .4rem; align-items: center; }
+.description { white-space: normal; }
+.panel-box > h2:first-child { margin-top: 0; }

@@ -103,3 +103,6 @@ document.body.addEventListener("htmx:afterSwap", () => {
 document.body.addEventListener("pitches:refresh", () => {
   window.htmx.trigger("#pitch-filters", "change");
 });
+
+// Lets browser tests (and anything else) know the shortcuts are wired up.
+document.documentElement.dataset.pitchesReady = "1";

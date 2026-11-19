@@ -182,6 +182,34 @@ TASKS = {
     }
 }
 
+# --- Email ------------------------------------------------------------------
+# All mail goes out through one Google Workspace account (e.g. events@yourorg.org)
+# over SMTP with an app password (Google account → Security → 2-Step Verification
+# → App passwords; the Workspace admin must allow them). Gmail only sends "From"
+# the authenticated account or its verified aliases, so DEFAULT_FROM_EMAIL
+# defaults to that account. Without EMAIL_HOST_USER, mail prints to the console.
+SITE_NAME = env("SITE_NAME", default="Event Planner")
+_smtp_user = env("EMAIL_HOST_USER", default="")  # lowercase: Django 6.1 rejects legacy EMAIL_* settings
+if _smtp_user:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": env("EMAIL_HOST", default="smtp.gmail.com"),
+                "port": env.int("EMAIL_PORT", default=587),
+                "username": _smtp_user,
+                "password": env("EMAIL_HOST_PASSWORD"),
+                "use_tls": True,
+                "timeout": 30,
+            },
+        }
+    }
+else:
+    MAILERS = {"default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}}
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=f"{SITE_NAME} <{_smtp_user or 'events@localhost'}>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+ACCOUNT_EMAIL_SUBJECT_PREFIX = f"[{SITE_NAME}] "
+
 # --- Auth: django-allauth (email login + Google Workspace SSO) ------------
 ACCOUNT_LOGIN_METHODS = {"email"}
 # Passwords optional: speakers can sign up with just an email and log in with an
