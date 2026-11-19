@@ -74,6 +74,13 @@ shared company profile (name, website, description, logo) and add/remove colleag
 or revoke manage rights, set the primary contact (the last manager can't leave). A person can
 be a speaker and a contact for several companies at once.
 
+**Company portal, part (b)** (`commerce.portal`): each company sees its sponsorships and
+exhibitor bookings by event (prospect deals and draft invoices hidden; status shown as
+Confirmed / Invoiced / Paid / Canceled), level benefits, amounts and sent invoices with the
+payment link. Managing contacts upload deliverables (→ "received") and answer the event's
+exhibitor questions (`FormQuestion.Form.EXHIBITOR`, stored on `ExhibitorBooking.answers`)
+until `Event.company_edit_deadline` (blank: the event's start). Comp tickets are deferred.
+
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
   columns. An org's virtual rooms (one per Zoom user, e.g. Zoom Room 0–5 + Zoom Webinar)

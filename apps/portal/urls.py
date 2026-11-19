@@ -19,6 +19,8 @@ urlpatterns = [
     path("pitches/<int:pk>/edit/", views.pitch_edit, name="pitch-edit"),
     path("companies/<slug:slug>/", company_views.company, name="company"),
     path("companies/<slug:slug>/edit/", company_views.company_edit, name="company-edit"),
+    path("companies/<slug:slug>/sponsorships/<int:pk>/", company_views.sponsorship, name="sponsorship"),
+    path("companies/<slug:slug>/booths/<int:pk>/", company_views.booth, name="booth"),
     path("companies/<slug:slug>/contacts/", company_views.company_contacts, name="company-contacts"),
     path(
         "companies/<slug:slug>/contacts/<int:pk>/",

@@ -43,6 +43,7 @@ class FormQuestion(models.Model):
     class Form(models.TextChoices):
         PITCH = "pitch", "Pitch form"
         SPEAKER_INFO = "speaker_info", "Speaker info form"
+        EXHIBITOR = "exhibitor", "Exhibitor form"
 
     class Kind(models.TextChoices):
         SHORT_TEXT = "short_text", "Short text"

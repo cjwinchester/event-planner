@@ -1,4 +1,4 @@
-"""Speaker portal (/speak/): a speaker's own profile, who may see their
+"""Portal (/portal/), speaking side: a speaker's own profile, who may see their
 contact details, and (parts B/C) their sessions and pitches.
 
 Any logged-in user may use it; it only ever shows the user's *own* speaker

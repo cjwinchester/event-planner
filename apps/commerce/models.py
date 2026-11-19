@@ -224,6 +224,9 @@ class ExhibitorBooking(TimeStampedModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     comp_tickets = models.PositiveIntegerField(null=True, blank=True, help_text="Blank = package default.")
     is_public = models.BooleanField(default=True)
+    answers = models.JSONField(
+        default=dict, blank=True, help_text="The exhibitor's answers to the event's exhibitor questions, by slug."
+    )
     notes = models.TextField(blank=True)
 
     ORG_PATH = "event__organization"

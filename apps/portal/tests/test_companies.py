@@ -80,3 +80,100 @@ class TestCompanyAccess:
         client.post(reverse("portal:company-contact-update", args=["acme-data", viv.pk]), {"action": "grant_manage"})
         resp = client.post(update, {"action": "remove"})
         assert resp["Location"] == reverse("portal:home") and not acme.contacts.filter(pk=dana.pk).exists()
+
+
+@pytest.fixture
+def deals(world, acme):
+    from datetime import date
+    from decimal import Decimal
+
+    from apps.commerce.models import (
+        ExhibitorBooking,
+        ExhibitorPackage,
+        Invoice,
+        Sponsorship,
+        SponsorshipDeliverable,
+        SponsorshipLevel,
+    )  # fmt: skip
+    from apps.pitches.models import FormQuestion
+
+    gold = SponsorshipLevel.objects.create(event=world.event, name="Gold", benefits="Logo on site\nTwo comps")
+    sp = Sponsorship.objects.create(
+        event=world.event, company=acme, level=gold, status="contracted", amount=Decimal("5000")
+    )
+    SponsorshipDeliverable.objects.create(sponsorship=sp, title="Logo (SVG)", due_date=date(2027, 2, 1))
+    Invoice.objects.create(event=world.event, sponsorship=sp, amount=Decimal("5000"), status="sent",
+                           payment_url="https://pay.example/inv1")  # fmt: skip
+    Invoice.objects.create(event=world.event, sponsorship=sp, amount=Decimal("1"), status="draft")
+    pkg = ExhibitorPackage.objects.create(event=world.event, name="Nonprofit table")
+    booth = ExhibitorBooking.objects.create(event=world.event, company=acme, package=pkg, status="committed")
+    other = Company.objects.create(name="Prospect Co", slug="prospect-co")
+    Sponsorship.objects.create(event=world.event, company=acme, status="prospect", amount=Decimal("99999"))
+    FormQuestion.objects.create(event=world.event, form="exhibitor", slug="power", prompt="Need power?",
+                                kind="boolean")  # fmt: skip
+    FormQuestion.objects.create(event=world.event, form="exhibitor", slug="tables", prompt="How many tables?",
+                                kind="integer", required=True)  # fmt: skip
+    return world, sp, booth, other
+
+
+@pytest.mark.django_db
+class TestCompanyDeals:
+    def test_overview_hides_prospects_and_labels_status(self, client, deals, django_user_model):
+        _world, sp, _booth, _ = deals
+        client.force_login(account(django_user_model, "viv@acme.example"))
+        body = client.get(reverse("portal:company", args=["acme-data"])).content.decode()
+        assert "Gold sponsorship" in body and "Confirmed" in body and "1 item to send" in body
+        assert "Nonprofit table" in body and "99999" not in body
+        page = client.get(reverse("portal:sponsorship", args=["acme-data", sp.pk])).content.decode()
+        assert "Logo on site" in page and "https://pay.example/inv1" in page and "$1.00" not in page  # drafts hidden
+        assert "Only contacts who can manage" in page
+
+    def test_upload_deliverable(self, client, deals, django_user_model):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        _world, sp, *_ = deals
+        client.force_login(account(django_user_model, "dana@acme.example"))
+        item = sp.deliverables.get()
+        url = reverse("portal:sponsorship", args=["acme-data", sp.pk])
+        client.post(url, {"deliverable": item.pk, "file": SimpleUploadedFile("logo.svg", b"<svg/>", "image/svg+xml")})
+        item.refresh_from_db()
+        assert item.status == "received" and item.file.name.endswith(".svg")
+
+    def test_view_only_contact_cannot_upload(self, client, deals, django_user_model):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        _world, sp, *_ = deals
+        client.force_login(account(django_user_model, "viv@acme.example"))
+        item = sp.deliverables.get()
+        url = reverse("portal:sponsorship", args=["acme-data", sp.pk])
+        resp = client.post(url, {"deliverable": item.pk, "file": SimpleUploadedFile("x.png", b"x")})
+        assert resp.status_code == 403
+
+    def test_exhibitor_answers_until_deadline(self, client, deals, django_user_model):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        world, _, booth, _ = deals
+        client.force_login(account(django_user_model, "dana@acme.example"))
+        url = reverse("portal:booth", args=["acme-data", booth.pk])
+        assert "To be assigned" in client.get(url).content.decode()
+        assert client.post(url, {"q_power": "on"}).status_code == 422  # tables is required
+        client.post(url, {"q_power": "on", "q_tables": "2"})
+        booth.refresh_from_db()
+        assert booth.answers == {"power": True, "tables": 2}
+        world.event.company_edit_deadline = timezone.now() - timedelta(minutes=1)
+        world.event.save()
+        client.post(url, {"q_tables": "9"})
+        booth.refresh_from_db()
+        assert booth.answers["tables"] == 2
+        assert "deadline has passed" in client.get(url).content.decode()
+
+    def test_other_companies_deals_are_off_limits(self, client, deals, django_user_model):
+        from apps.commerce.models import Sponsorship
+
+        world, *_, other = deals
+        theirs = Sponsorship.objects.create(event=world.event, company=other, status="paid")
+        client.force_login(account(django_user_model, "dana@acme.example"))
+        assert client.get(reverse("portal:sponsorship", args=["acme-data", theirs.pk])).status_code == 404
+        assert client.get(reverse("portal:sponsorship", args=["prospect-co", theirs.pk])).status_code == 404

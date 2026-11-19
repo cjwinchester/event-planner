@@ -1,1 +1,17 @@
-
+<h2>Events</h2>
+{% for r in upcoming %}
+  <article class="session-card">
+    <h3><a href="{% if r.kind == 'sponsorship' %}{% url 'portal:sponsorship' company.slug r.deal.pk %}{% else %}{% url 'portal:booth' company.slug r.deal.pk %}{% endif %}">
+      {{ r.event.name }}: {% if r.kind == "sponsorship" %}{{ r.deal.level.name|default:"Sponsor" }} sponsorship{% else %}Exhibitor{% if r.deal.package %} ({{ r.deal.package.name }}){% endif %}{% endif %}</a></h3>
+    <p class="meta">{{ r.event.organization.name }} · {{ r.event.start_date|date:"F j" }}–{{ r.event.end_date|date:"F j, Y" }}</p>
+    <p><span class="tag {% if r.status == 'Paid' %}tag-ok{% elif r.status == 'Canceled' %}tag-warn{% endif %}">{{ r.status }}</span>
+      {% if r.kind == "sponsorship" and r.todo %}<span class="tag tag-warn">{{ r.todo }} item{{ r.todo|pluralize }} to send</span>{% endif %}
+      {% if r.kind == "booth" and r.deal.booth_number %}<span class="hint">Booth {{ r.deal.booth_number }}</span>{% endif %}</p>
+  </article>
+{% empty %}
+  <p>No upcoming sponsorships or exhibit booths yet.</p>
+{% endfor %}
+{% if past %}
+  <h2>Past</h2>
+  <ul class="past">{% for r in past %}<li><a href="{% if r.kind == 'sponsorship' %}{% url 'portal:sponsorship' company.slug r.deal.pk %}{% else %}{% url 'portal:booth' company.slug r.deal.pk %}{% endif %}">{{ r.event.name }}</a> <span class="hint">{% if r.kind == "sponsorship" %}Sponsor{% else %}Exhibitor{% endif %} · {{ r.status }}</span></li>{% endfor %}</ul>
+{% endif %}

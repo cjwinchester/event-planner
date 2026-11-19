@@ -1,0 +1,13 @@
+{% if deal.amount is not None or invoices %}
+  <h2>Payment</h2>
+  {% if deal.amount is not None %}<p>Amount: <strong>${{ deal.amount|floatformat:"2g" }}</strong></p>{% endif %}
+  {% if invoices %}
+    <table class="portal-table">
+      <thead><tr><th scope="col">Invoice</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Pay</span></th></tr></thead>
+      <tbody>{% for inv in invoices %}
+        <tr><td>{{ inv.issued_at|date:"M j, Y"|default:"—" }}{% if inv.external_id %} · #{{ inv.external_id }}{% endif %}</td><td>${{ inv.amount|floatformat:"2g" }}</td><td>{{ inv.get_status_display }}</td>
+          <td>{% if inv.payment_url and inv.status == "sent" %}<a class="btn" href="{{ inv.payment_url }}" rel="noopener">Pay now</a>{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  {% endif %}
+{% endif %}

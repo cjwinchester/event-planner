@@ -148,6 +148,12 @@ class Event(TimeStampedModel):
         help_text="Until then, speakers on a session may edit its details in the speaker portal. "
         "Blank: only staff can. Withdrawing is always allowed.",
     )
+    company_edit_deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Until then, sponsors and exhibitors may upload deliverables and answer exhibitor questions "
+        "in the portal. Blank: until the event starts.",
+    )
     virtual_meetings = models.BooleanField(
         "create Zoom meetings",
         default=False,

@@ -1,0 +1,38 @@
+{% extends "portal/base.html" %}
+{% load tz %}
+{% block title %}{{ deal.event.name }} booth{% endblock %}
+{% block main %}
+{% include "portal/_company_nav.html" %}
+<h1>{{ deal.event.name }}: exhibitor</h1>
+<p class="meta">{{ deal.event.organization.name }} · {{ deal.event.start_date|date:"F j" }}–{{ deal.event.end_date|date:"F j, Y" }} · <span class="tag">{{ status }}</span></p>
+<dl class="facts">
+  {% if deal.package %}<dt>Package</dt><dd>{{ deal.package.name }}{% if deal.package.booth_size %} · {{ deal.package.booth_size }}{% endif %}</dd>{% endif %}
+  <dt>Booth</dt><dd>{% if deal.booth_number %}{{ deal.booth_number }}{% if deal.booth_room %} · {{ deal.booth_room.name }}{% endif %}{% else %}To be assigned{% endif %}</dd>
+</dl>
+{% if deal.package.description %}<div class="description">{{ deal.package.description|linebreaks }}</div>{% endif %}
+
+{% if form.fields %}
+  <h2>Exhibitor details</h2>
+  {% if editable %}
+    <p class="hint">You can change these until {% timezone deal.event.timezone %}{{ deadline|date:"l, F j, g:i A T" }}{% endtimezone %}.</p>
+    <form method="post" class="portal-form" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <fieldset>
+        {% for field in form %}
+          {% if field.field.choices %}
+            <div class="pfield"><fieldset class="choices"><legend>{{ field.label }}{% if field.field.required %} *{% endif %}</legend>{{ field }}</fieldset>{% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}</div>
+          {% elif field.field.widget.input_type == "checkbox" %}
+            <div class="pfield"><label>{{ field }} {{ field.label }}</label></div>
+          {% else %}{% include "portal/_field.html" %}{% endif %}
+        {% endfor %}
+      </fieldset>
+      <button class="btn">Save</button>
+    </form>
+  {% else %}
+    <dl class="facts">{% for prompt, value in answers %}<dt>{{ prompt }}</dt><dd>{{ value|default_if_none:"—" }}</dd>{% endfor %}</dl>
+    <p class="hint">{% if not me.can_manage %}Only contacts who can manage {{ company.name }} can change these.{% else %}The deadline has passed. Contact {{ deal.event.organization.name }} to change anything.{% endif %}</p>
+  {% endif %}
+{% endif %}
+{% include "portal/_invoices.html" %}
+{% endblock %}

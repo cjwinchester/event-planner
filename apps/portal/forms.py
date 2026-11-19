@@ -245,3 +245,15 @@ class ContactForm(forms.ModelForm):
         if self.company and self.company.contacts.filter(email__iexact=email).exists():
             raise forms.ValidationError("That person is already a contact.")
         return email
+
+
+class DeliverableUploadForm(forms.Form):
+    file = forms.FileField()
+
+
+class ExhibitorForm(EventInfoForm):
+    """The event's exhibitor questions (FormQuestion form=exhibitor); no recording-consent field."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.fields["recording_consent"]
