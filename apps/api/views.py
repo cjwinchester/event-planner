@@ -29,6 +29,7 @@ from apps.program.scheduling import PlacementError, place_logistics_item, place_
 from apps.publishing.bundle import Audience, build_event_bundle
 from apps.publishing.models import PublishRun
 from apps.reporting.registry import ReportScope, all_reports
+from apps.speakers import permissions as speaker_permissions
 from apps.speakers import sharing
 from apps.speakers.models import SpeakerProfile, SpeakerShareGrant
 from apps.venues.models import Floorplan, Room, Venue
@@ -265,6 +266,17 @@ class SpeakerViewSet(viewsets.ModelViewSet):
     serializer_class = s.SpeakerProfileSerializer
     permission_classes = [SharedDirectoryPermission]
     search_fields = ["first_name", "last_name", "affiliation"]
+
+    def perform_update(self, serializer):
+        # speakers.permissions: claimed profiles belong to the speaker; an unclaimed
+        # profile's private fields (email decides who can claim it) only to its creator.
+        profile = serializer.instance
+        if not speaker_permissions.can_edit_profile(self.request.user, profile):
+            raise PermissionDenied("Only the speaker (or the organization that created this profile) can change it.")
+        touched = set(serializer.validated_data) & set(SpeakerProfile.PRIVATE_FIELDS)
+        if touched and not speaker_permissions.can_edit_private(self.request.user, profile):
+            raise PermissionDenied(f"You can't change {', '.join(sorted(touched))} for this speaker.")
+        serializer.save()
 
     def perform_create(self, serializer):
         orgs = organization_ids_for(self.request.user, Role.STAFF)

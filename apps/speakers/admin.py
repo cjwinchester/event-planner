@@ -4,11 +4,22 @@ from apps.core.admin import OrgScopedAdmin, SharedDirectoryAdmin, SharedDirector
 from apps.organizations.permissions import organization_ids_for
 
 from .models import EventSpeaker, SpeakerLink, SpeakerProfile, SpeakerShareGrant
+from .permissions import can_edit_private, can_edit_profile
 
 
 class SpeakerLinkInline(SharedDirectoryInline, admin.TabularInline):
     model = SpeakerLink
     extra = 0
+
+    # Links are part of the profile: same edit rule (speakers.permissions).
+    def has_add_permission(self, request, obj=None):
+        return super().has_add_permission(request, obj) and (obj is None or can_edit_profile(request.user, obj))
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and (obj is None or can_edit_profile(request.user, obj))
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and (obj is None or can_edit_profile(request.user, obj))
 
 
 @admin.register(SpeakerProfile)
@@ -41,6 +52,19 @@ class SpeakerProfileAdmin(SharedDirectoryAdmin):
         if self._can_see_private(request, obj):
             fields[5:5] = list(SpeakerProfile.PRIVATE_FIELDS)
         return fields
+
+    def has_change_permission(self, request, obj=None):
+        # speakers.permissions: claimed profiles are the speaker's; unclaimed ones the
+        # creating/sharing orgs'. (Viewing stays open to every member.)
+        if obj is None:
+            return super().has_change_permission(request, obj)
+        return super().has_change_permission(request, obj) and can_edit_profile(request.user, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(self.readonly_fields)
+        if obj is not None and not can_edit_private(request.user, obj):
+            readonly += [f for f in SpeakerProfile.PRIVATE_FIELDS if self._can_see_private(request, obj)]
+        return readonly
 
     def get_search_fields(self, request):
         # Don't let orgs discover private emails through search.
