@@ -81,6 +81,14 @@ payment link. Managing contacts upload deliverables (→ "received") and answer 
 exhibitor questions (`FormQuestion.Form.EXHIBITOR`, stored on `ExhibitorBooking.answers`)
 until `Event.company_edit_deadline` (blank: the event's start). Comp tickets are deferred.
 
+**Company portal, part (c)** (staff, `planner.company_views`): per-event **Sponsors &
+exhibitors** page: sponsorships with their deliverables (request with due date and
+instructions, download, mark done/reopen), exhibitors with answered-question counts and a CSV
+of answers, contacts per company with portal status (not invited / invited / using the
+portal), add contact, send or resend invites, "invite everyone not yet invited", and the
+company deadline. Invites (`commerce.invites`) are emailed from the Workspace account with a
+sign-in-by-code link. Staff act only on companies with a deal at that event.
+
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
   columns. An org's virtual rooms (one per Zoom user, e.g. Zoom Room 0–5 + Zoom Webinar)

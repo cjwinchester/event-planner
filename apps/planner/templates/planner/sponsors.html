@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load tz %}
+{% block title %}Sponsors & exhibitors · {{ event.name }}{% endblock %}
+{% block breadcrumbs %}{% include "planner/partials/event_nav.html" %}{% endblock %}
+{% block main %}
+{% url 'planner:sponsors-action' event.organization.slug event.slug as action_url %}
+<main class="mx-auto max-w-6xl p-6">
+  <h1 class="mb-1 text-xl font-semibold">Sponsors &amp; exhibitors</h1>
+  <p class="mb-4 max-w-3xl text-sm text-gray-600">Deals are managed in the admin; this page tracks what you need from each company and gets their contacts into the portal, where they see their deals (not prospects), upload deliverables and answer exhibitor questions.</p>
+
+  <section class="mb-6 rounded border border-gray-200 bg-white p-4">
+    <h2 class="font-semibold">Company deadline</h2>
+    <p class="text-sm text-gray-600">Companies can upload deliverables and change exhibitor answers until <strong>{% timezone event.timezone %}{{ deadline|date:"l, F j, g:i A T" }}{% endtimezone %}</strong>{% if deadline_is_default %} (the event's start; no deadline set){% endif %}.</p>
+    <form method="post" action="{{ action_url }}" class="mt-2 flex flex-wrap items-end gap-2">{% csrf_token %}
+      <input type="hidden" name="action" value="deadline">
+      <label class="field mb-0"><span>Deadline ({{ event.timezone }})</span>{{ deadline_form.deadline }}</label>
+      <button class="btn-secondary">Save</button>
+    </form>
+  </section>
+
+  <h2 class="mb-2 text-lg font-semibold">Sponsorships ({{ sponsorships|length }})</h2>
+  {% for sp in sponsorships %}
+    <article class="mb-3 rounded border border-gray-200 bg-white p-4 text-sm">
+      <div class="flex flex-wrap items-baseline gap-2">
+        <strong class="text-base">{{ sp.company.name }}</strong>
+        <span>{{ sp.level.name|default:"No level" }}{% if sp.scope != "event" %} · {% if sp.track %}{{ sp.track.name }} track{% elif sp.session %}{{ sp.session.title }}{% endif %}{% endif %}</span>
+        <span class="badge {% if sp.status == 'paid' %}status-accept_queue{% elif sp.status == 'prospect' or sp.status == 'canceled' %}{% else %}status-waitlisted{% endif %}">{{ sp.get_status_display }}</span>
+        {% if sp.amount is not None %}<span class="text-gray-600">${{ sp.amount|floatformat:"2g" }}</span>{% endif %}
+        {% if sp.status == "prospect" %}<span class="text-xs text-gray-500">(hidden from the company until committed)</span>{% endif %}
+        <a class="ml-auto text-xs text-blue-700" href="{% url 'admin:commerce_sponsorship_change' sp.pk %}">edit deal</a>
+      </div>
+      <ul class="mt-2 space-y-1">
+        {% for d in sp.deliverables.all %}
+          <li class="flex flex-wrap items-center gap-2">
+            <span class="badge {% if d.status == 'done' %}status-accept_queue{% elif d.status == 'received' %}status-waitlisted{% else %}status-decline_queue{% endif %}">{{ d.get_status_display }}</span>
+            <span>{{ d.title }}</span>{% if d.due_date %}<span class="text-xs text-gray-500">due {{ d.due_date|date:"M j" }}</span>{% endif %}
+            {% if d.file %}<a class="text-xs text-blue-700" href="{{ d.file.url }}">download</a>{% endif %}
+            <form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<input type="hidden" name="deliverable" value="{{ d.pk }}">
+              {% if d.status != "done" %}<button class="text-xs text-blue-700" name="action" value="mark_done">mark done</button>{% else %}<button class="text-xs text-gray-600" name="action" value="mark_pending">reopen</button>{% endif %}
+            </form>
+          </li>
+        {% empty %}<li class="text-gray-500">No deliverables requested yet.</li>{% endfor %}
+      </ul>
+      <form method="post" action="{{ action_url }}" class="inline-fields mt-2">{% csrf_token %}
+        <input type="hidden" name="action" value="add_deliverable"><input type="hidden" name="sponsorship" value="{{ sp.pk }}">
+        {{ deliverable_form.title }}{{ deliverable_form.due_date }}{{ deliverable_form.notes }}
+        <button class="btn-secondary">Request</button>
+      </form>
+    </article>
+  {% empty %}<p class="mb-4 text-sm text-gray-500">No sponsorships yet.</p>{% endfor %}
+
+  <div class="mb-2 mt-6 flex items-center gap-3">
+    <h2 class="text-lg font-semibold">Exhibitors ({{ bookings|length }})</h2>
+    {% if bookings %}<a class="text-sm text-blue-700" href="{% url 'planner:exhibitors-csv' event.organization.slug event.slug %}">Download answers (CSV)</a>{% endif %}
+  </div>
+  {% if bookings %}
+    <table class="mb-4 w-full bg-white text-sm">
+      <thead class="bg-gray-100 text-left"><tr><th class="p-2">Company</th><th class="p-2">Package</th><th class="p-2">Booth</th><th class="p-2">Status</th><th class="p-2">Questions answered</th><th class="p-2"></th></tr></thead>
+      <tbody>{% for b in bookings %}
+        <tr class="border-b border-gray-100">
+          <td class="p-2 font-medium">{{ b.company.name }}</td>
+          <td class="p-2">{{ b.package.name|default:"—" }}</td>
+          <td class="p-2">{{ b.booth_number|default:"—" }}{% if b.booth_room %} · {{ b.booth_room.name }}{% endif %}</td>
+          <td class="p-2">{{ b.get_status_display }}</td>
+          <td class="p-2">{% if questions %}{{ b.answered }} of {{ questions|length }}{% else %}<span class="text-gray-500">no questions set</span>{% endif %}</td>
+          <td class="p-2"><a class="text-xs text-blue-700" href="{% url 'admin:commerce_exhibitorbooking_change' b.pk %}">edit</a></td>
+        </tr>
+      {% endfor %}</tbody>
+    </table>
+  {% else %}<p class="mb-4 text-sm text-gray-500">No exhibitors yet.</p>{% endif %}
+  {% if not questions %}<p class="mb-6 text-xs text-gray-500">Add exhibitor questions (power, tables, shipping…) in the admin as Form questions with the form “Exhibitor form”.</p>{% endif %}
+
+  <div class="mb-2 mt-6 flex items-center gap-3">
+    <h2 class="text-lg font-semibold">Contacts &amp; portal invites</h2>
+    {% if companies %}
+      <form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<input type="hidden" name="action" value="invite_all">
+        {% for c in companies %}<input type="hidden" name="company" value="{{ c.pk }}">{% endfor %}
+        <button class="btn-secondary" onclick="return confirm('Email a portal invite to every contact who hasn\'t been invited or logged in yet?')">Invite everyone not yet invited</button>
+      </form>
+    {% endif %}
+  </div>
+  {% for c in companies %}
+    <section class="mb-3 rounded border border-gray-200 bg-white p-4 text-sm">
+      <h3 class="font-semibold">{{ c.name }}</h3>
+      <ul class="mt-1 space-y-1">
+        {% for ct in c.contacts.all %}
+          <li class="flex flex-wrap items-center gap-2">
+            <span>{{ ct.name }}{% if ct.is_primary %} <span class="badge">primary</span>{% endif %}</span>
+            <span class="text-gray-600">{{ ct.email|default:"no email" }}</span>
+            <span class="text-xs {% if ct.user_id %}text-green-700{% else %}text-gray-500{% endif %}">{% if ct.user_id %}using the portal{% elif ct.invited_at %}invited {{ ct.invited_at|date:"M j" }}{% else %}not invited{% endif %}{% if not ct.can_manage %} · view only{% endif %}</span>
+            {% if ct.email and not ct.user_id %}
+              <form method="post" action="{{ action_url }}" class="ml-auto">{% csrf_token %}<input type="hidden" name="action" value="invite"><input type="hidden" name="contact" value="{{ ct.pk }}">
+                <button class="text-xs text-blue-700">{% if ct.invited_at %}resend invite{% else %}send invite{% endif %}</button></form>
+            {% endif %}
+          </li>
+        {% empty %}<li class="text-gray-500">No contacts yet.</li>{% endfor %}
+      </ul>
+      <form method="post" action="{{ action_url }}" class="inline-fields mt-2">{% csrf_token %}
+        <input type="hidden" name="action" value="add_contact"><input type="hidden" name="company" value="{{ c.pk }}">
+        {{ contact_form.name }}{{ contact_form.email }}<label class="text-xs">{{ contact_form.can_manage }} {{ contact_form.can_manage.label }}</label>
+        <button class="btn-secondary">Add contact</button>
+      </form>
+    </section>
+  {% endfor %}
+</main>
+{% endblock %}

@@ -1,0 +1,14 @@
+Hello {{ contact.name }},
+
+{{ organization.name }} has added you as a contact for {{ company.name }} at {{ event.name }} ({{ event.start_date|date:"F j" }}–{{ event.end_date|date:"F j, Y" }}).
+
+In the portal you can see your {% if roles %}{{ roles|join:" and " }}{% else %}participation{% endif %}, {% if contact.can_manage %}update your company profile, upload what we need from you{% if deadline %} (by {{ deadline }}){% endif %}, {% endif %}and see invoices.
+
+Sign in with this email address ({{ contact.email }}); we'll email you a one-time code, no password needed:
+{{ login_url }}
+
+If you also speak at our events, the same login shows your speaker profile and sessions.
+
+Questions? Just reply to this email.
+
+{{ organization.name }}

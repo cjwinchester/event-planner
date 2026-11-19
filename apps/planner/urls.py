@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import event_views, pass_views, pitch_views, room_views, speaker_views, views
+from . import company_views, event_views, pass_views, pitch_views, room_views, speaker_views, views
 
 app_name = "planner"
 urlpatterns = [
@@ -52,6 +52,13 @@ urlpatterns = [
     ),
     path(
         "<slug:org_slug>/<slug:event_slug>/speakers/deadline/", speaker_views.speaker_deadline, name="speaker-deadline"
+    ),
+    path("<slug:org_slug>/<slug:event_slug>/sponsors/", company_views.sponsors, name="sponsors"),
+    path("<slug:org_slug>/<slug:event_slug>/sponsors/action/", company_views.sponsors_action, name="sponsors-action"),
+    path(
+        "<slug:org_slug>/<slug:event_slug>/sponsors/exhibitors.csv",
+        company_views.exhibitor_answers_csv,
+        name="exhibitors-csv",
     ),
     path("<slug:org_slug>/<slug:event_slug>/slots/", views.slots, name="slots"),
     path("<slug:org_slug>/<slug:event_slug>/slots/copy/", views.slots_copy, name="slots-copy"),

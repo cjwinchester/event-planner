@@ -60,6 +60,7 @@ class CompanyContact(TimeStampedModel):
     title = models.CharField(max_length=255, blank=True)
     is_primary = models.BooleanField(default=False)
     can_manage = models.BooleanField(default=True, help_text="May edit the company profile and tickets.")
+    invited_at = models.DateTimeField(null=True, blank=True, help_text="Last portal invite email sent.")
 
     class Meta:
         ordering = ["company", "-is_primary", "name"]
