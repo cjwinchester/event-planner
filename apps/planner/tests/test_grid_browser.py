@@ -119,3 +119,23 @@ def test_time_slot_panel_adds_slot(grid_page, world):
     form.locator("button").click()
     page.wait_for_selector('.slot-band:has-text("After lunch")')
     assert TimeSlot.objects.get().label == "After lunch"
+
+
+def test_sidebar_divider_resizes_and_remembers(grid_page):
+    page = grid_page()
+    pool = page.locator("#pool")
+    handle = page.locator("#pool-resizer")
+    before = pool.bounding_box()["width"]
+    box = handle.bounding_box()
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + 50)
+    page.mouse.down()
+    page.mouse.move(box["x"] + 120, box["y"] + 50, steps=5)
+    page.mouse.up()
+    after = pool.bounding_box()["width"]
+    assert after > before + 80
+    handle.focus()
+    page.keyboard.press("ArrowLeft")
+    assert pool.bounding_box()["width"] < after
+    page.reload()
+    page.wait_for_selector(".grid-col")
+    assert abs(page.locator("#pool").bounding_box()["width"] - (after - 16)) < 3  # remembered

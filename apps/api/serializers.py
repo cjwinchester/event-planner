@@ -178,7 +178,7 @@ class SessionSerializer(OrgModelSerializer):
             "id", "event", "public_id", "title", "title_status", "description", "description_status", "summary",
             "session_type", "skill_level", "tracks", "status", "source", "owner", "is_plenary", "is_stock",
             "requires_preregistration", "capacity", "cost", "is_recorded", "live_url", "recording_url",
-            "working_folder_url", "internal_notes", "extra", "setup", "expected_headcount", "av_requirements",
+            "working_folder_url", "internal_notes", "extra", "setup", "av_requirements",
             "fnb_requirements", "hotel_notes", "room", "starts_at", "ends_at", "is_ready", "readiness_problems",
             "speakers", "updated_at",
         ]  # fmt: skip
@@ -190,7 +190,7 @@ class LogisticsItemSerializer(OrgModelSerializer):
         model = LogisticsItem
         fields = [
             "id", "event", "category", "title", "description", "location_note", "blocks_room", "is_public",
-            "owner", "setup", "expected_headcount", "av_requirements", "fnb_requirements", "hotel_notes",
+            "owner", "setup", "av_requirements", "fnb_requirements", "hotel_notes",
             "room", "starts_at", "ends_at",
         ]  # fmt: skip
         read_only_fields = ["room", "starts_at", "ends_at"]

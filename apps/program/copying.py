@@ -81,7 +81,6 @@ def copy_sessions(
                 cost=original.cost,
                 is_recorded=original.is_recorded,
                 setup=original.setup,
-                expected_headcount=original.expected_headcount,
                 av_requirements=original.av_requirements,
                 fnb_requirements=original.fnb_requirements,
                 hotel_notes=original.hotel_notes,

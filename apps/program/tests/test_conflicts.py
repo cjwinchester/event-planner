@@ -97,7 +97,7 @@ class TestWarningsAndSweep:
         assert [c.kind for c in result.warnings] == [Kind.PLENARY]
 
     def test_capacity_warning(self, world, make_session):
-        s = make_session("Big", room=world.er_a, start=at(5, 9), end=at(5, 10), expected_headcount=250)
+        s = make_session("Big", room=world.er_a, start=at(5, 9), end=at(5, 10), capacity=250)
         assert [c.kind for c in check_session(s)] == [Kind.CAPACITY]
 
     def test_event_sweep_reports_each_pair_once(self, world, make_session):

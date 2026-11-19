@@ -11,7 +11,7 @@ ERROR (blocks saving / placing):
 
 WARNING (shown in the grid, never blocks):
   * Plenary overlap — a session overlaps an all-attendee (plenary) session.
-  * Over capacity — expected headcount / seat limit exceeds room capacity.
+  * Over capacity — the session's seat limit exceeds the room's capacity.
 
 "Overlap" is half-open: [start, end) — back-to-back items don't conflict.
 Canceled and unplaced (no room/time) sessions are ignored.
@@ -278,7 +278,7 @@ def check_logistics_item(item, *, starts_at=_UNSET, ends_at=_UNSET, room=_UNSET)
 def _capacity_warnings(session, room_id: int, me: ItemRef) -> list[Conflict]:
     from apps.events.models import EventRoom
 
-    wanted = max(filter(None, [session.expected_headcount, session.capacity]), default=None)
+    wanted = session.capacity  # the session's seat limit (pre-registration), if any
     if not wanted:
         return []
     room = EventRoom.objects.select_related("room").filter(pk=room_id).first()
@@ -288,7 +288,7 @@ def _capacity_warnings(session, room_id: int, me: ItemRef) -> list[Conflict]:
             Conflict(
                 Kind.CAPACITY,
                 Severity.WARNING,
-                f"Expects {wanted} people but {room.name} holds {cap}.",
+                f"Seat limit is {wanted} but {room.name} holds {cap}.",
                 (me,),
             )
         ]

@@ -52,7 +52,7 @@
   {% for d in days %}
     <h3 class="day">{{ d.day|date:"l, F j" }}</h3>
     <table class="board">
-      <thead><tr><th scope="col">Room</th><th scope="col">Time</th><th scope="col">Session &amp; details</th></tr></thead>
+      <thead><tr><th scope="col">Room</th><th scope="col">Time</th><th scope="col">What &amp; details</th></tr></thead>
       {% for room in d.rooms %}
         <tbody class="room">
           {% for b in room.blocks %}
@@ -60,12 +60,11 @@
               {% if forloop.first %}<th scope="rowgroup" rowspan="{{ room.blocks|length }}">{{ room.name }}</th>{% endif %}
               <td class="t">{{ b.start|time:"g:i A" }}–{{ b.end|time:"g:i A" }}</td>
               <td>
-                <span class="title">{{ b.s.title }}</span>{% if b.changed %} <span class="tag title">changed</span>{% endif %}
-                {% with s=b.s %}{% if s.setup or s.expected_headcount or s.av_requirements or s.fnb_requirements or s.hotel_notes %}
+                {% if b.category %}<span class="tag cat">{{ b.category }}</span> {% endif %}<span class="title">{{ b.s.title }}</span>{% if b.changed %} <span class="tag title">changed</span>{% endif %}
+                {% with s=b.s %}{% if s.setup or s.av_requirements or s.fnb_requirements or s.hotel_notes %}
                   <details><summary>Details</summary>
                     <dl>
                       {% if s.setup %}<dt>Setup</dt><dd>{{ s.get_setup_display }}</dd>{% endif %}
-                      {% if s.expected_headcount %}<dt>Expected headcount</dt><dd>{{ s.expected_headcount }}</dd>{% endif %}
                       {% if s.av_requirements %}<dt>A/V</dt><dd>{{ s.av_requirements|linebreaksbr }}</dd>{% endif %}
                       {% if s.fnb_requirements %}<dt>Food &amp; beverage</dt><dd>{{ s.fnb_requirements|linebreaksbr }}</dd>{% endif %}
                       {% if s.hotel_notes %}<dt>Notes</dt><dd>{{ s.hotel_notes|linebreaksbr }}</dd>{% endif %}

@@ -19,7 +19,7 @@
 .planner-body { flex: 1; display: flex; min-height: 0; }
 
 /* Pool */
-.pool { width: 17rem; flex: none; border-right: 1px solid #e5e7eb; background: #fff; display: flex; flex-direction: column; gap: .5rem; padding: .6rem; min-height: 0; }
+.pool { width: var(--pool-width, 17rem); flex: none; background: #fff; display: flex; flex-direction: column; gap: .5rem; padding: .6rem; min-height: 0; }
 .pool-head { display: flex; align-items: center; justify-content: space-between; }
 .pool-head h2 { font-weight: 600; font-size: .9rem; }
 .pool-filters { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; align-items: center; }
@@ -107,3 +107,10 @@
 .room-edit { width: 100%; }
 .panel-note { background: #fffbeb; border: 1px solid #fde68a; border-radius: .25rem; padding: .4rem .6rem; margin: .4rem 0; }
 .room-picks { border: 0; padding: 0; margin: 0 0 .5rem; max-height: 14rem; overflow: auto; }
+
+/* Draggable divider between the unscheduled sidebar and the grid */
+.pane-resizer { flex: none; width: 7px; margin: 0 -3px; z-index: 40; /* above the grid's sticky axis/headers */ cursor: col-resize; position: relative; touch-action: none; }
+.pane-resizer::after { content: ""; position: absolute; inset: 0 3px; background: #e5e7eb; }
+.pane-resizer:hover::after, .pane-resizer.dragging::after, .pane-resizer:focus-visible::after { inset: 0 2px; background: #2563eb; }
+.pane-resizer:focus-visible { outline: none; }
+body.resizing, body.resizing * { cursor: col-resize !important; user-select: none !important; }

@@ -158,3 +158,20 @@ class TestStaffPage:
         client.post(self.url(world, "hotel-action"), {"action": "cutoff", "cutoff": "2027-03-01T08:00"})
         world.event.refresh_from_db()
         assert world.event.hotel_changes_from.astimezone(world.event.tz).isoformat() == "2027-03-01T08:00:00-05:00"
+
+
+@pytest.mark.django_db
+def test_board_includes_every_placed_logistics_item(client, world, make_session):
+    """Everything in a room at a time shows, public or not (a coffee setup, a staff-only room block)."""
+    from apps.program.models import LogisticsItem
+
+    make_session("Morning panel", room=world.er_a, start=at(5, 10), end=at(5, 11))
+    LogisticsItem.objects.create(event=world.event, category=world.water, title="Coffee service", room=world.er_a,
+                                 starts_at=at(5, 9), ends_at=at(5, 10), fnb_requirements="Coffee for 150",
+                                 is_public=False)  # fmt: skip
+    LogisticsItem.objects.create(event=world.event, category=world.registration, title="Unplaced desk")
+    link = HotelLink.objects.create(event=world.event, label="H")
+    body = client.get(reverse("hotel:home", args=[link.token])).content.decode()
+    assert "Coffee service" in body and "Coffee for 150" in body and "Water service" in body
+    assert body.index("Coffee service") < body.index("Morning panel")  # 9:00 before 10:00 in the same room
+    assert "Unplaced desk" not in body

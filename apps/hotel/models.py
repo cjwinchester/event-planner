@@ -7,7 +7,7 @@ re-entered, and there's no integration with the boards. So:
 
   * `HotelLink` is a private, revocable, expiring URL (no login), optionally
     limited to one venue's rooms, showing every programmed time block in every
-    room plus spec details (setup, headcount, A/V, F&B, notes);
+    room plus spec details (setup, A/V, F&B, notes);
   * from the event's cutoff (`Event.hotel_changes_from`, default the day before
     it starts) every board-visible change to a session is recorded as a
     `ScheduleChange`: one open row per session holding what the boards had

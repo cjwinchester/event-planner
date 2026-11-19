@@ -640,5 +640,67 @@ function bindChrome() {
   setInterval(checkStale, 20000);
 }
 
+// ------------------------------------------------------------------ resizable sidebar
+
+const POOL_KEY = "planner.poolWidth";
+const POOL_MIN = 180;
+const POOL_DEFAULT = 272;
+
+function setPoolWidth(px, { save = true } = {}) {
+  const max = Math.max(POOL_MIN, Math.round(window.innerWidth * 0.6));
+  const width = Math.min(max, Math.max(POOL_MIN, Math.round(px)));
+  document.documentElement.style.setProperty("--pool-width", `${width}px`);
+  const handle = $("#pool-resizer");
+  handle.setAttribute("aria-valuenow", String(width));
+  handle.setAttribute("aria-valuemin", String(POOL_MIN));
+  handle.setAttribute("aria-valuemax", String(max));
+  if (save) {
+    try { localStorage.setItem(POOL_KEY, String(width)); } catch { /* private mode: fine */ }
+  }
+  return width;
+}
+
+function bindResizer() {
+  const handle = $("#pool-resizer");
+  const pool = $("#pool");
+  if (!handle || !pool) return;
+  let saved = null;
+  try { saved = Number(localStorage.getItem(POOL_KEY)); } catch { /* ignore */ }
+  setPoolWidth(saved || POOL_DEFAULT, { save: false });
+
+  handle.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add("dragging");
+    document.body.classList.add("resizing");
+    const startX = e.clientX;
+    const startWidth = pool.getBoundingClientRect().width;
+    const move = (ev) => setPoolWidth(startWidth + ev.clientX - startX, { save: false });
+    const up = (ev) => {
+      setPoolWidth(startWidth + ev.clientX - startX);
+      handle.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  });
+  handle.addEventListener("dblclick", () => setPoolWidth(POOL_DEFAULT));
+  handle.addEventListener("keydown", (e) => {
+    const width = pool.getBoundingClientRect().width;
+    const step = e.shiftKey ? 64 : 16;
+    if (e.key === "ArrowLeft") setPoolWidth(width - step);
+    else if (e.key === "ArrowRight") setPoolWidth(width + step);
+    else if (e.key === "Home") setPoolWidth(POOL_MIN);
+    else if (e.key === "End") setPoolWidth(window.innerWidth * 0.6);
+    else return;
+    e.preventDefault();
+  });
+}
+
+bindResizer();
 bindChrome();
 load();

@@ -151,8 +151,8 @@ clean.
 `apps.hotel`: an Organization's staff create a private, revocable link per hotel/venue (no
 login; expires 7 days after the event). The hotel's page shows **changes to make on the
 board readers** first (title changes, then moves, new sessions, removals), then **every
-programmed time block in every room** by day, each with a "Details" dropdown (setup,
-headcount, A/V, F&B, hotel notes; opened when printed). From `Event.hotel_changes_from`
+programmed time block in every room** by day (sessions and every placed logistics item, public or not), each with a "Details" dropdown (setup,
+A/V, F&B, hotel notes; opened when printed). From `Event.hotel_changes_from`
 (default: the day before the event) every board-visible change to a session (title, room,
 time; unplacing/canceling/deleting = removal) is folded into one open `ScheduleChange` per
 session (reverts disappear) via Session save/delete signals. Organization admins mark changes
@@ -236,7 +236,7 @@ Open:
 | MemberClicks | Stub with a documented plan. Vimeo can list videos but not yet attach recordings to sessions. |
 | Zoom | Built, untested live (see checklist above). Meeting sync runs on demand from Run of show, not automatically after each grid move. Cloud recordings aren't pulled into Vimeo yet. |
 | Room pickup | Manual `RoomPickupSnapshot` entry only. Hotel portals usually need a login, so automate later if at all. |
-| Hotel spec sheet | Fields exist on sessions and logistics (setup, headcount, A/V, F&B, DNP via `is_public`). The "For Hotel" exporter is not written yet. |
+| Hotel spec sheet | Fields exist on sessions and logistics (setup, A/V, F&B, DNP via `is_public`). The "For Hotel" exporter is not written yet. |
 | Speaker dedupe | `SpeakerProfile.merged_into` exists; there's no merge service or UI yet. |
 | Payments | `commerce/payments.py` has the interface and a manual provider only. No webhook endpoint yet. |
 | Venue directory | Any staff user can edit shared venues and rooms; consider moderation or edit history. |

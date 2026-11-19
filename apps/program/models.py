@@ -6,7 +6,7 @@ Two kinds of things occupy rooms and time:
 - `LogisticsItem` — non-content room usage (registration desk, coat check,
   nursing room, storage, staff office, catering/water service).
 
-Both share `RoomUsage` fields (room, time, setup, headcount, A/V, F&B) so a
+Both share `RoomUsage` fields (room, time, setup, A/V, F&B, hotel notes) so a
 hotel spec sheet ("For Hotel" BEO orders) can be generated from either.
 Conflict detection over both lives in `program.conflicts`; *all* schedule
 changes from the grid/API go through `program.scheduling.place_item()`,
@@ -158,7 +158,6 @@ class RoomUsage(models.Model):
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
     setup = models.CharField(max_length=20, choices=RoomCapacity.Setup.choices, blank=True)
-    expected_headcount = models.PositiveIntegerField(null=True, blank=True)
     av_requirements = models.TextField("A/V requirements", blank=True)
     fnb_requirements = models.TextField("F&B requirements", blank=True)
     hotel_notes = models.TextField(blank=True, help_text="Instructions for the venue's BEO / spec sheet.")

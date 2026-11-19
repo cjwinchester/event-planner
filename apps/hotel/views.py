@@ -11,7 +11,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from apps.attendees.views import private
-from apps.program.models import Session
+from apps.program.models import LogisticsItem, Session
 
 from .models import HotelLink, ScheduleChange, changes_from
 
@@ -59,7 +59,8 @@ def change_rows(event, venue_id=None, *, done: bool = False, limit=None):
 
 
 def board(event, venue_id=None):
-    """Every programmed time block, by day and room."""
+    """Every programmed time block, by day and room: sessions and logistics items
+    (registration desks, meals, setups...) alike: anything in a room at a time."""
     tz = event.tz
     sessions = (
         Session.objects.active()
@@ -69,14 +70,30 @@ def board(event, venue_id=None):
     )
     if venue_id:
         sessions = sessions.filter(room__room__venue_id=venue_id)
+    logistics = (
+        LogisticsItem.objects.filter(event=event, room__isnull=False, starts_at__isnull=False, ends_at__isnull=False)
+        .select_related("room__room", "category")
+        .order_by("starts_at")
+    )
+    if venue_id:
+        logistics = logistics.filter(room__room__venue_id=venue_id)
     open_keys = set(ScheduleChange.objects.filter(event=event, done_at=None).values_list("session_key", flat=True))
     days: dict = {}
-    for s in sessions:
-        start = s.starts_at.astimezone(tz)
+    for item, is_session in [*((s, True) for s in sessions), *((i, False) for i in logistics)]:
+        start = item.starts_at.astimezone(tz)
         rooms = days.setdefault(start.date(), {})
-        rooms.setdefault((s.room.sort_order, s.room.name), []).append(
-            {"s": s, "start": start, "end": s.ends_at.astimezone(tz), "changed": s.pk in open_keys}
+        rooms.setdefault((item.room.sort_order, item.room.name), []).append(
+            {
+                "s": item,
+                "start": start,
+                "end": item.ends_at.astimezone(tz),
+                "changed": is_session and item.pk in open_keys,
+                "category": "" if is_session else item.category.name,
+            }
         )
+    for rooms in days.values():
+        for blocks in rooms.values():
+            blocks.sort(key=lambda b: (b["start"], b["end"]))
     return [
         {"day": day, "rooms": [{"name": name, "blocks": blocks} for (_, name), blocks in sorted(rooms.items())]}
         for day, rooms in sorted(days.items())

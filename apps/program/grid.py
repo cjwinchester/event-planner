@@ -72,7 +72,6 @@ def grid_payload(event) -> dict:
             "speakers": [{"id": ss.speaker_id, "name": ss.speaker.full_name} for ss in x.session_speakers.all()],
             "owner": x.owner_id,
             "owner_name": str(x.owner) if x.owner_id else "",
-            "expected_headcount": x.expected_headcount,
             "updated_at": x.updated_at,
         }
 

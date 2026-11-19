@@ -110,7 +110,7 @@ erDiagram
 - **Session readiness** (`is_ready`, `SessionQuerySet.ready()`): placed + timed + title
   `EDITED` + not canceled. Description has its own edit status but doesn't gate publishing.
 - **RoomUsage** (abstract) gives Session and LogisticsItem the same hotel-order fields
-  (setup, headcount, A/V, F&B, notes), so a hotel spec sheet can be generated from both.
+  (setup, A/V, F&B, notes), so a hotel spec sheet can be generated from both.
 - **LogisticsItem.blocks_room** (or its category default): registration desks block a room;
   water service and catering share one with sessions.
 - **VenueRFP** (RFP document + the venue's proposal, status, dates) and **Concession**

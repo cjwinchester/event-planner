@@ -100,7 +100,6 @@ class SessionAdmin(_EventRoomLimitMixin, EventTimezoneMixin, OrgScopedAdmin):
                 "classes": ("collapse",),
                 "fields": (
                     "setup",
-                    "expected_headcount",
                     "capacity",
                     "requires_preregistration",
                     "cost",
@@ -165,7 +164,7 @@ class LogisticsItemAdmin(_EventRoomLimitMixin, EventTimezoneMixin, OrgScopedAdmi
         ("Attendees", {"fields": ("is_public",)}),
         (
             "Hotel spec sheet",
-            {"fields": ("setup", "expected_headcount", "av_requirements", "fnb_requirements", "hotel_notes")},
+            {"fields": ("setup", "av_requirements", "fnb_requirements", "hotel_notes")},
         ),
     )
 
