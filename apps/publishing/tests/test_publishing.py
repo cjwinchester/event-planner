@@ -40,7 +40,7 @@ def scheduled(world, make_session):
     ready.tracks.set([world.track_ai])
     make_session("Draft", edited=False, room=world.er_b, start=at(5, 9), end=at(5, 10))
     make_session("Unscheduled")
-    EventSpeaker.objects.create(event=world.event, speaker=world.alice, notes="SECRET-NOTE", bio_override="Edited bio")
+    EventSpeaker.objects.filter(event=world.event, speaker=world.alice).update(notes="SECRET-NOTE", bio="Edited bio")
     Sponsorship.objects.create(
         event=world.event, company=Company.objects.create(name="Acme", slug="acme"), status=DealStatus.CONTRACTED
     )

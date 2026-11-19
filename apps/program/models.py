@@ -389,6 +389,15 @@ class SessionSpeaker(models.Model):
     def __str__(self) -> str:
         return f"{self.speaker} ({self.get_role_display()}) — {self.session}"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Schedules read what they show from the speaker's engagement for the event
+        # (speakers.EventSpeaker), so every speaker on a session must have one; it
+        # copies the shared profile when created.
+        from apps.speakers.models import EventSpeaker
+
+        EventSpeaker.objects.get_or_create(event_id=self.session.event_id, speaker_id=self.speaker_id)
+
     def clean(self):
         if not (self.session_id and self.speaker_id):
             return
@@ -629,6 +638,7 @@ class SpeakerUpdate(models.Model):
 
     class Kind(models.TextChoices):
         EDITED = "edited", "Edited session details"
+        EVENT_PROFILE = "event_profile", "Edited their bio/affiliation for this event"
         CONFIRMED = "confirmed", "Confirmed"
         WITHDREW = "withdrew", "Withdrew"
 

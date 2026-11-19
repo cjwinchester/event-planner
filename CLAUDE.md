@@ -31,6 +31,9 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
 - **Published speakers are confirmed speakers**: public bundles include only `SessionSpeaker.is_confirmed` rows.
   Speakers confirm in the portal (or staff mark it); speaker portal edits/confirmations/withdrawals go through
   `program.speaker_actions` (deadline check + `SpeakerUpdate` log).
+- **Schedules show per-event copies**: speaker affiliation/title/bio/headshot come from `EventSpeaker`, company
+  name/description/website/logo from the deal (`CompanyListing` on `Sponsorship`/`ExhibitorBooking`), copied from
+  the shared record when created. Never read those from the shared profile in exports. Names and pronouns stay live.
 - **Shared speaker profiles**: edits go through `speakers.permissions` (a claimed profile is the speaker's;
   an unclaimed one's email only by the creating org, since the email decides who can claim it).
 - **Public reads use the cache**: feeds and pass pages call `publishing.cache.public_bundle` (deep copy; never

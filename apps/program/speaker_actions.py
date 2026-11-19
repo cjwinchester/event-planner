@@ -90,3 +90,39 @@ def withdraw(ss: SessionSpeaker, user, *, reason: str = "") -> SpeakerUpdate:
                 status=EventSpeaker.Status.WITHDRAWN, updated_at=timezone.now()
             )
     return entry
+
+
+PROFILE_FIELDS = ("affiliation", "job_title", "bio")
+
+
+def edit_event_profile(engagement, user, data: dict | None = None, *, from_profile: bool = False):
+    """The speaker updates what this event's schedule shows about them (until the
+    event's speaker-edit deadline): new values, or a fresh copy of their current
+    shared profile. Logged for staff like session edits."""
+    event = engagement.event
+    if not can_edit(event):
+        raise SpeakerActionError("The deadline for speaker edits has passed. Contact the organizers to make changes.")
+    before = {f: getattr(engagement, f) for f in (*PROFILE_FIELDS, "headshot", "headshot_url")}
+    if from_profile:
+        engagement.copy_from_profile(overwrite=True)
+    else:
+        for f in PROFILE_FIELDS:
+            if f in data:
+                setattr(engagement, f, data[f] or "")
+    changes = {
+        f: [str(before[f] or ""), str(getattr(engagement, f) or "")]
+        for f in before
+        if str(before[f] or "") != str(getattr(engagement, f) or "")
+    }
+    if not changes:
+        return None
+    with transaction.atomic():
+        engagement.save()
+        return SpeakerUpdate.objects.create(
+            event=event,
+            session_title="Speaker details for this event",
+            speaker=engagement.speaker,
+            user=user,
+            kind=SpeakerUpdate.Kind.EVENT_PROFILE,
+            changes=changes,
+        )

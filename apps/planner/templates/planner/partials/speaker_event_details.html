@@ -1,0 +1,11 @@
+<form class="mt-1 rounded border border-gray-200 bg-gray-50 p-2 text-xs" hx-post="{% url 'planner:session-speaker-details' session.pk row.pk %}" hx-target="#speaker-details-{{ row.pk }}">
+  <p class="mb-1 text-gray-600">How {{ session.event.short_name|default:session.event.name }} lists {{ row.speaker }}. Saved per event, so later profile changes don't rewrite this schedule.</p>
+  {% if message %}<p class="panel-ok">{{ message }}</p>{% endif %}
+  <label class="field"><span>Title</span>{{ form.job_title }}</label>
+  <label class="field"><span>Affiliation</span>{{ form.affiliation }}</label>
+  <label class="field"><span>Bio</span>{{ form.bio }}</label>
+  <div class="flex flex-wrap gap-2">
+    <button class="btn-secondary" name="action" value="save">Save</button>
+    <button class="text-blue-700" name="action" value="from_profile" title="Replace with the speaker's current shared profile">Copy from current profile</button>
+  </div>
+</form>

@@ -45,8 +45,10 @@
           {% if row.is_confirmed %}<span class="badge status-accept_queue" title="Listed on the published schedule">confirmed</span>{% else %}<span class="badge status-waitlisted" title="Not published until confirmed">not confirmed</span>{% endif %}</span>
         {% if can_edit %}
           {% if not row.is_confirmed %}<button class="text-xs text-blue-700" hx-post="{% url 'planner:session-speaker-confirm' session.pk row.pk %}" hx-target="#side-panel-body" title="Confirm on the speaker's behalf">mark confirmed</button>{% endif %}
+          <button class="text-xs text-blue-700" hx-get="{% url 'planner:session-speaker-details' session.pk row.pk %}" hx-target="#speaker-details-{{ row.pk }}" title="Affiliation, title and bio as this event's schedule shows them">event details</button>
           <button class="text-xs text-red-700" hx-post="{% url 'planner:session-speaker-remove' session.pk row.pk %}" hx-target="#side-panel-body">remove</button>
         {% endif %}
+        <div id="speaker-details-{{ row.pk }}" class="w-full"></div>
       </li>
     {% empty %}<li class="text-sm text-gray-500">No speakers yet.</li>{% endfor %}
   </ul>

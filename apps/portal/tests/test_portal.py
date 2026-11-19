@@ -24,8 +24,8 @@ class TestMerge:
         new = SpeakerProfile.objects.create(first_name="Alice", last_name="A", email="al@example.com")
         both = make_session("Both on it", speakers=[old, new])
         only_old = make_session("Only old", speakers=[old])
-        EventSpeaker.objects.create(event=world.event, speaker=old, notes="Staff note from last year")
-        EventSpeaker.objects.create(event=world.event, speaker=new)
+        # Sessions already gave both an engagement for the event; old's carries a staff note.
+        EventSpeaker.objects.filter(event=world.event, speaker=old).update(notes="Staff note from last year")
         merge_profiles(new, [old])
         old.refresh_from_db()
         new.refresh_from_db()

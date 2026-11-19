@@ -9,6 +9,7 @@
   {% if deal.package %}<dt>Package</dt><dd>{{ deal.package.name }}{% if deal.package.booth_size %} · {{ deal.package.booth_size }}{% endif %}</dd>{% endif %}
   <dt>Booth</dt><dd>{% if deal.booth_number %}{{ deal.booth_number }}{% if deal.booth_room %} · {{ deal.booth_room.name }}{% endif %}{% else %}To be assigned{% endif %}</dd>
 </dl>
+{% include "portal/_listing.html" %}
 {% if deal.package.description %}<div class="description">{{ deal.package.description|linebreaks }}</div>{% endif %}
 
 {% if form.fields %}

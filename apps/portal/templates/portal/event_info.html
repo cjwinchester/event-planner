@@ -1,11 +1,43 @@
 {% extends "portal/base.html" %}
+{% load tz %}
 {% block title %}{{ event.name }}: speaker details{% endblock %}
 {% block main %}
 <p><a href="{% url 'portal:sessions' %}">← Your sessions</a></p>
 <h1>Speaker details for {{ event.name }}</h1>
+<section class="panel-box" aria-labelledby="as-h">
+  <h2 id="as-h">How {{ event.name }} lists you</h2>
+  <p class="hint">This event's schedule uses these, saved when you joined it, so later changes to your profile (a new job, a new bio) don't rewrite it. Your name and pronouns always come from your profile.</p>
+  {% if editable %}
+    <form method="post" class="portal-form" novalidate>{% csrf_token %}
+      <input type="hidden" name="action" value="event_profile">
+      <fieldset>
+        <div class="two">
+          {% include "portal/_field.html" with field=profile_form.job_title %}
+          {% include "portal/_field.html" with field=profile_form.affiliation %}
+        </div>
+        {% include "portal/_field.html" with field=profile_form.bio %}
+      </fieldset>
+      <button class="btn">Save for this event</button>
+    </form>
+    <form method="post" class="mt-2">{% csrf_token %}<input type="hidden" name="action" value="from_profile">
+      <button class="btn-secondary">Use my current profile (including headshot)</button>
+      <span class="hint">You can change these until {% timezone event.timezone %}{{ deadline|date:"F j, g:i A T" }}{% endtimezone %}.</span>
+    </form>
+  {% else %}
+    <dl class="facts">
+      <dt>Title</dt><dd>{{ es.job_title|default:"—" }}</dd>
+      <dt>Affiliation</dt><dd>{{ es.affiliation|default:"—" }}</dd>
+      <dt>Bio</dt><dd>{{ es.bio|default:"—"|linebreaksbr }}</dd>
+    </dl>
+    <p class="hint">{% if deadline %}Changes closed on {{ deadline|date:"F j" }}.{% else %}Speaker edits aren't open for this event.{% endif %} Contact {{ event.organization.name }} to change these.</p>
+  {% endif %}
+</section>
+
+<h2>Questions from the organizers</h2>
 <p>Only {{ event.organization.name }} sees these answers.</p>
 <form method="post" class="portal-form" novalidate>
   {% csrf_token %}
+  <input type="hidden" name="action" value="info">
   {{ form.non_field_errors }}
   <fieldset>
     {% for field in form %}

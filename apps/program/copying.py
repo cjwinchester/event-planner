@@ -113,6 +113,10 @@ def copy_sessions(
             copy.tracks.set(track_ids)
 
             if include_speakers:
+                from apps.speakers.models import EventSpeaker
+
+                for ss in original.session_speakers.all():  # bulk_create skips SessionSpeaker.save()
+                    EventSpeaker.objects.get_or_create(event=target_event, speaker_id=ss.speaker_id)
                 SessionSpeaker.objects.bulk_create(
                     SessionSpeaker(session=copy, speaker_id=ss.speaker_id, role=ss.role, sort_order=ss.sort_order)
                     for ss in original.session_speakers.all()

@@ -70,7 +70,7 @@ class TestMySessions:
 
     def test_withdraw_always_allowed(self, client, alice_portal):
         world, session, ss = alice_portal
-        EventSpeaker.objects.create(event=world.event, speaker=world.alice, status="confirmed")
+        EventSpeaker.objects.filter(event=world.event, speaker=world.alice).update(status="confirmed")
         client.post(reverse("portal:session-withdraw", args=[ss.pk]), {"reason": "Family emergency"})
         assert not SessionSpeaker.objects.filter(pk=ss.pk).exists()
         assert SessionSpeaker.objects.filter(session=session, speaker=world.bob).exists()
@@ -129,3 +129,45 @@ class TestStaffSide:
         client.post(reverse("planner:session-speaker-confirm", args=[session.pk, ss.pk]))
         ss.refresh_from_db()
         assert ss.is_confirmed and not SpeakerUpdate.objects.exists()  # staff actions aren't "speaker updates"
+
+
+@pytest.mark.django_db
+class TestEventProfileSnapshot:
+    def test_schedule_keeps_event_copy_after_profile_changes(self, client, alice_portal):
+        world, _session, ss = alice_portal
+        from datetime import timedelta
+
+        from apps.speakers.models import EventSpeaker
+
+        ss.is_confirmed = True
+        ss.save()
+        es = EventSpeaker.objects.get(event=world.event, speaker=world.alice)
+        assert es.affiliation == "Daily News"  # copied at engagement
+        world.alice.affiliation = "New Employer"
+        world.alice.bio = "New bio"
+        world.alice.save()
+        bundle = build_event_bundle(world.event, Audience.PUBLIC)
+        alice = next(sp for sp in bundle["speakers"] if sp["id"] == world.alice.public_id)
+        assert alice["affiliation"] == "Daily News"
+        url = reverse("portal:event-info", args=[world.event.pk])
+        client.post(url, {"action": "from_profile"})  # no deadline: speakers can't
+        es.refresh_from_db()
+        assert es.affiliation == "Daily News"
+        world.event.speaker_edit_deadline = timezone.now() + timedelta(days=1)
+        world.event.save()
+        client.post(url, {"action": "from_profile"})
+        es.refresh_from_db()
+        assert es.affiliation == "New Employer" and es.bio == "New bio"
+        assert SpeakerUpdate.objects.filter(kind="event_profile").exists()
+
+    def test_staff_edit_event_details_from_panel(self, client, alice_portal):
+        world, session, ss = alice_portal
+        from apps.speakers.models import EventSpeaker
+
+        client.force_login(world.staff_user)
+        url = reverse("planner:session-speaker-details", args=[session.pk, ss.pk])
+        assert "Daily News" in client.get(url).content.decode()
+        client.post(url, {"action": "save", "affiliation": "Daily News (on leave)", "job_title": "Editor", "bio": "B"})
+        es = EventSpeaker.objects.get(event=world.event, speaker=world.alice)
+        assert (es.affiliation, es.job_title) == ("Daily News (on leave)", "Editor")
+        assert not SpeakerUpdate.objects.exists()  # staff edits aren't speaker updates

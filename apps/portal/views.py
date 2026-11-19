@@ -28,6 +28,7 @@ from apps.speakers.models import EventSpeaker, SpeakerProfile, SpeakerShareGrant
 from .forms import (
     CoSpeakerFormSet,
     EventInfoForm,
+    EventProfileForm,
     GrantForm,
     LinkFormSet,
     PitchForm,
@@ -249,8 +250,25 @@ def event_info(request, event_id):
     saved = es.form_responses or {}
     initial = {f"q_{k}": v for k, v in saved.items()}
     initial["recording_consent"] = {True: "yes", False: "no"}.get(es.recording_consent, "")
-    form = EventInfoForm(request.POST or None, questions=questions, initial=initial)
-    if request.method == "POST" and form.is_valid():
+    action = request.POST.get("action", "info")
+    editable = speaker_actions.can_edit(event)
+    profile_form = EventProfileForm(
+        request.POST if action == "event_profile" else None,
+        initial={f: getattr(es, f) for f in speaker_actions.PROFILE_FIELDS},
+    )
+    if request.method == "POST" and action in ("event_profile", "from_profile"):
+        if action == "from_profile" or profile_form.is_valid():
+            try:
+                changed = speaker_actions.edit_event_profile(
+                    es, request.user, getattr(profile_form, "cleaned_data", None), from_profile=action == "from_profile"
+                )
+            except speaker_actions.SpeakerActionError as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(request, "Updated what this event shows about you." if changed else "No changes.")
+            return redirect("portal:event-info", event_id=event.pk)
+    form = EventInfoForm(request.POST if action == "info" else None, questions=questions, initial=initial)
+    if request.method == "POST" and action == "info" and form.is_valid():
         try:
             answers = validate_answers(event, form.answers(), form=FormQuestion.Form.SPEAKER_INFO)
         except ValidationError as exc:
@@ -262,7 +280,12 @@ def event_info(request, event_id):
             es.save(update_fields=["form_responses", "recording_consent", "updated_at"])
             messages.success(request, f"Saved your details for {event.name}.")
             return redirect("portal:sessions")
-    return render(request, "portal/event_info.html", _ctx(request, event=event, form=form))
+    return render(
+        request,
+        "portal/event_info.html",
+        _ctx(request, event=event, form=form, es=es, profile_form=profile_form, editable=editable,
+             deadline=event.speaker_edit_deadline),
+    )  # fmt: skip
 
 
 # ------------------------------------------------------------------ part C: open calls and pitches

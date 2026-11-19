@@ -112,6 +112,46 @@ class ExhibitorPackage(models.Model):
         return self.name
 
 
+class CompanyListing(models.Model):
+    """How one event lists the company. Copied from the shared Company when the
+    deal is created, then independent: a company that rebrands next year doesn't
+    rewrite this year's sponsor list. Published schedules read only these."""
+
+    display_name = models.CharField(max_length=255, blank=True, help_text="Name as listed for this event.")
+    description = models.TextField(blank=True, help_text="Blurb as listed for this event.")
+    website = models.URLField(blank=True)
+    logo = models.ImageField(upload_to="companies/logos/", blank=True)
+    logo_url = models.URLField(blank=True)
+
+    LISTING_FIELDS = {"display_name": "name", "description": "description", "website": "website",
+                      "logo": "logo", "logo_url": "logo_url"}  # fmt: skip
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.company_id:
+            self.copy_from_company()
+        super().save(*args, **kwargs)
+
+    def copy_from_company(self, *, overwrite: bool = False) -> list[str]:
+        changed = []
+        for mine, theirs in self.LISTING_FIELDS.items():
+            value = getattr(self.company, theirs)
+            if (overwrite or not getattr(self, mine)) and getattr(self, mine) != value:
+                setattr(self, mine, value)
+                changed.append(mine)
+        return changed
+
+    @property
+    def listed_name(self) -> str:
+        return self.display_name or self.company.name
+
+    @property
+    def logo_href(self) -> str:
+        return self.logo.url if self.logo else self.logo_url
+
+
 class DealStatus(models.TextChoices):
     PROSPECT = "prospect", "Prospect"
     COMMITTED = "committed", "Committed"
@@ -121,7 +161,7 @@ class DealStatus(models.TextChoices):
     CANCELED = "canceled", "Canceled"
 
 
-class Sponsorship(TimeStampedModel):
+class Sponsorship(CompanyListing, TimeStampedModel):
     """A company sponsoring an event, a track, a session, or a special event."""
 
     class Scope(models.TextChoices):
@@ -150,7 +190,6 @@ class Sponsorship(TimeStampedModel):
     status = models.CharField(max_length=16, choices=DealStatus.choices, default=DealStatus.PROSPECT)
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     comp_tickets = models.PositiveIntegerField(null=True, blank=True, help_text="Blank = level default.")
-    display_name = models.CharField(max_length=255, blank=True, help_text="Override the company name publicly.")
     is_public = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
 
@@ -209,7 +248,7 @@ class SponsorshipDeliverable(TimeStampedModel):
         return self.title
 
 
-class ExhibitorBooking(TimeStampedModel):
+class ExhibitorBooking(CompanyListing, TimeStampedModel):
     """A company exhibiting at an event."""
 
     event = models.ForeignKey("events.Event", on_delete=models.CASCADE, related_name="exhibitor_bookings")

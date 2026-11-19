@@ -199,3 +199,29 @@ def test_deliverable_upload_rejects_html_and_huge_files(client, deals, django_us
         portal_forms.MAX_DELIVERABLE_MB = 20
     item.refresh_from_db()
     assert item.status == "pending"
+
+
+@pytest.mark.django_db
+def test_event_listing_is_a_snapshot_and_editable(client, deals, django_user_model):
+    from apps.publishing.bundle import Audience, build_event_bundle
+
+    world, sp, booth, _ = deals
+    world.event.publish_sponsors = world.event.publish_exhibitors = True
+    world.event.save()
+    acme = sp.company
+    acme.description = "New positioning"
+    acme.save()
+    bundle = build_event_bundle(world.event, Audience.INTERNAL)
+    assert bundle["sponsors"][0]["description"] == ""  # copied when the deal was made (blank then)
+    client.force_login(account(django_user_model, "dana@acme.example"))
+    url = reverse("portal:sponsorship", args=["acme-data", sp.pk])
+    client.post(url, {"action": "listing_from_company"})
+    sp.refresh_from_db()
+    assert sp.description == "New positioning"
+    client.post(url, {"action": "listing", "display_name": "Acme (NICAR edition)", "description": "Hi NICAR",
+                      "website": "https://acme.example/nicar"})  # fmt: skip
+    sp.refresh_from_db()
+    assert sp.display_name == "Acme (NICAR edition)"
+    assert build_event_bundle(world.event, Audience.INTERNAL)["sponsors"][0]["name"] == "Acme (NICAR edition)"
+    booth.refresh_from_db()
+    assert booth.display_name == "Acme Data"  # bookings carry their own copy

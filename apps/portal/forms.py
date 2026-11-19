@@ -274,3 +274,31 @@ class ExhibitorForm(EventInfoForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         del self.fields["recording_consent"]
+
+
+class EventProfileForm(forms.Form):
+    """What this event's schedule shows about the speaker (their EventSpeaker copy)."""
+
+    affiliation = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={"class": "input"}))
+    job_title = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={"class": "input"}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={"class": "input", "rows": 6}))
+
+
+class ListingForm(forms.ModelForm):
+    """How one event lists the company (CompanyListing fields on a Sponsorship/ExhibitorBooking)."""
+
+    class Meta:
+        from apps.commerce.models import Sponsorship
+
+        # Both Sponsorship and ExhibitorBooking get these fields from the abstract
+        # CompanyListing, so this form works for either instance.
+        model = Sponsorship
+        fields = ["display_name", "description", "website", "logo"]
+        labels = {"display_name": "Name", "description": "Description"}
+        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if name != "logo":
+                field.widget.attrs.setdefault("class", "input")

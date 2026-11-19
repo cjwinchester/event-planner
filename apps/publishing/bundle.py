@@ -134,6 +134,9 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
         if sp.session_id:
             sponsor_ids_by_session.setdefault(sp.session_id, []).append(sp.company.slug)
 
+    # Each speaker's engagement for this event: what schedules show about them.
+    engagements = {e.speaker_id: e for e in EventSpeaker.objects.filter(event=event)}
+
     session_dicts = []
     speaker_session_ids: dict[int, list[int]] = {}
     speaker_objs = {}
@@ -166,7 +169,12 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
                 {
                     "speaker_id": ss.speaker.public_id,
                     "role": ss.role,
-                    "affiliation": ss.affiliation_override or ss.speaker.affiliation,
+                    "affiliation": ss.affiliation_override
+                    or (
+                        engagements[ss.speaker_id].affiliation
+                        if ss.speaker_id in engagements
+                        else ss.speaker.affiliation
+                    ),
                     **({} if public else {"confirmed": ss.is_confirmed}),
                 }
                 for ss in session_speakers
@@ -189,11 +197,6 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
         session_dicts.append(d)
 
     # ---- speakers -------------------------------------------------------
-    engagements = {
-        e.speaker_id: e
-        # select_related: display_bio/display_affiliation fall back to the profile.
-        for e in EventSpeaker.objects.filter(event=event, speaker_id__in=speaker_objs.keys()).select_related("speaker")
-    }
     granted = set()
     if not public:
         granted = set(
@@ -204,17 +207,22 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
     speaker_dicts = []
     if not public or event.publish_speakers:
         for sp in sorted(speaker_objs.values(), key=lambda p: (p.last_name.lower(), p.first_name.lower())):
-            engagement = engagements.get(sp.pk)
+            # What the schedule shows comes from the speaker's engagement for THIS event
+            # (a snapshot taken when they were engaged), never the live shared profile,
+            # except name and pronouns, which are always current.
+            engagement = engagements.get(sp.pk) or EventSpeaker(event=event, speaker=sp)
+            if engagement.pk is None:
+                engagement.copy_from_profile()  # safety net; SessionSpeaker.save() creates engagements
             d = {
                 "id": sp.public_id,
                 "first_name": sp.first_name,
                 "last_name": sp.last_name,
                 "pronouns": sp.pronouns,
-                "affiliation": engagement.display_affiliation if engagement else sp.affiliation,
-                "job_title": sp.job_title,
-                "bio": sanitize_html(engagement.display_bio if engagement else sp.bio),
-                "headshot_url": sp.headshot_href,
-                "featured": bool(engagement and engagement.is_featured),
+                "affiliation": engagement.affiliation,
+                "job_title": engagement.job_title,
+                "bio": sanitize_html(engagement.bio),
+                "headshot_url": engagement.headshot_href,
+                "featured": bool(engagement.is_featured),
                 "links": [{"kind": link.kind, "label": link.display_label, "url": link.url} for link in sp.links.all()],
                 "session_ids": speaker_session_ids.get(sp.pk, []),
             }
@@ -321,11 +329,12 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
 
     sponsors = [
         {
+            # Listed as copied onto the deal for this event, not the live company profile.
             "id": sp.company.slug,
-            "name": sp.display_name or sp.company.name,
-            "description": sp.company.description,
-            "url": sp.company.website,
-            "logo_url": sp.company.logo_href,
+            "name": sp.listed_name,
+            "description": sp.description,
+            "url": sp.website,
+            "logo_url": sp.logo_href,
             "level": sp.level.name if sp.level else "",
             "level_rank": sp.level.rank if sp.level else None,
             "scope": sp.scope,
@@ -346,10 +355,10 @@ def build_event_bundle(event, audience: Audience = Audience.PUBLIC, *, feeds: di
             exhibitors.append(
                 {
                     "id": b.company.slug,
-                    "name": b.company.name,
-                    "description": b.company.description,
-                    "url": b.company.website,
-                    "logo_url": b.company.logo_href,
+                    "name": b.listed_name,
+                    "description": b.description,
+                    "url": b.website,
+                    "logo_url": b.logo_href,
                     "booth": b.booth_number,
                     "package": b.package.name if b.package_id else "",
                 }

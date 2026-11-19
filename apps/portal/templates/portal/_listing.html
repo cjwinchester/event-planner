@@ -1,0 +1,29 @@
+<section class="panel-box" aria-labelledby="listing-h">
+  <h2 id="listing-h">How {{ deal.event.name }} lists you</h2>
+  <p class="hint">Saved for this event when the deal was set up, so later changes to your company profile don't rewrite this event's listings.</p>
+  <div class="speaker-card">
+    {% if deal.logo_href %}<img class="logo" src="{{ deal.logo_href }}" alt="{{ deal.listed_name }} logo" width="96" height="96">{% else %}<div class="headshot-empty" aria-hidden="true">{{ deal.listed_name|first }}</div>{% endif %}
+    <div>
+      <p class="name">{{ deal.listed_name }}</p>
+      {% if deal.website %}<p><a href="{{ deal.website }}" rel="noopener">{{ deal.website }}</a></p>{% endif %}
+      {% if deal.description %}<p class="bio">{{ deal.description|linebreaksbr }}</p>{% endif %}
+    </div>
+  </div>
+  {% if editable %}
+    <details class="mt-2">
+      <summary>Change this event's listing</summary>
+      <form method="post" enctype="multipart/form-data" class="portal-form" novalidate>{% csrf_token %}
+        <input type="hidden" name="action" value="listing">
+        <fieldset>
+          {% include "portal/_field.html" with field=listing_form.display_name %}
+          {% include "portal/_field.html" with field=listing_form.website %}
+          {% include "portal/_field.html" with field=listing_form.description %}
+          {% include "portal/_field.html" with field=listing_form.logo %}
+        </fieldset>
+        <button class="btn">Save listing</button>
+      </form>
+      <form method="post" class="mt-2">{% csrf_token %}<input type="hidden" name="action" value="listing_from_company">
+        <button class="btn-secondary">Use our current company profile</button></form>
+    </details>
+  {% endif %}
+</section>

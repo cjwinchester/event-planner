@@ -214,8 +214,16 @@ class EventSpeaker(TimeStampedModel):
     registration_status = models.CharField(max_length=255, blank=True, help_text="e.g. 'Registered', 'Comp added'.")
     membership_status = models.CharField(max_length=255, blank=True, help_text="From the AMS connector.")
     is_featured = models.BooleanField(default=False, help_text="Highlight (keynote/featured speaker).")
-    affiliation_override = models.CharField(max_length=255, blank=True)
-    bio_override = models.TextField(blank=True, help_text="Edited bio for this event (wins over profile bio).")
+    # What this event's schedule shows. Copied from the shared profile when the
+    # engagement is created, then independent: a speaker who changes jobs next
+    # year doesn't rewrite this year's schedule. Names and pronouns are NOT
+    # copied: they always come live from the profile, so a name change is never
+    # frozen into old schedules.
+    affiliation = models.CharField(max_length=255, blank=True)
+    job_title = models.CharField(max_length=255, blank=True)
+    bio = models.TextField(blank=True, help_text="Bio as published for this event.")
+    headshot = models.ImageField(upload_to="speakers/headshots/", blank=True)
+    headshot_url = models.URLField(blank=True)
     bio_edited = models.BooleanField(default=False)
     recording_consent = models.BooleanField(null=True, blank=True)
     form_responses = models.JSONField(
@@ -235,10 +243,23 @@ class EventSpeaker(TimeStampedModel):
     def __str__(self) -> str:
         return f"{self.speaker} @ {self.event}"
 
-    @property
-    def display_bio(self) -> str:
-        return self.bio_override or self.speaker.bio
+    SNAPSHOT_FIELDS = ("affiliation", "job_title", "bio", "headshot", "headshot_url")
+
+    def copy_from_profile(self, *, overwrite: bool = False) -> list[str]:
+        """Fill the event copy from the shared profile (blanks only, unless `overwrite`)."""
+        changed = []
+        for f in self.SNAPSHOT_FIELDS:
+            value = getattr(self.speaker, f)
+            if (overwrite or not getattr(self, f)) and getattr(self, f) != value:
+                setattr(self, f, value)
+                changed.append(f)
+        return changed
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.speaker_id:
+            self.copy_from_profile()
+        super().save(*args, **kwargs)
 
     @property
-    def display_affiliation(self) -> str:
-        return self.affiliation_override or self.speaker.affiliation
+    def headshot_href(self) -> str:
+        return self.headshot.url if self.headshot else self.headshot_url

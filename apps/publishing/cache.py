@@ -29,6 +29,7 @@ def content_version(event) -> str:
     from apps.commerce.models import ExhibitorBooking, Sponsorship
     from apps.events.models import EventRoom
     from apps.program.models import LogisticsItem, Session, SessionSpeaker, Track
+    from apps.speakers.models import EventSpeaker
 
     parts = [event.updated_at.isoformat()]
     for qs in (
@@ -43,6 +44,8 @@ def content_version(event) -> str:
         n=Count("pk"), c=Count("pk", filter=Q(is_confirmed=True)), m=Max("pk"), o=Max("sort_order")
     )
     parts.append(f"{ss['n']}:{ss['c']}:{ss['m']}:{ss['o']}")
+    es = EventSpeaker.objects.filter(event=event).aggregate(n=Count("pk"), m=Max("updated_at"))
+    parts.append(f"{es['n']}:{es['m']}")
     parts.append(repr(list(EventRoom.objects.filter(event=event).values_list("pk", "sort_order", "is_public"))))
     parts.append(repr(list(Track.objects.filter(event=event).values_list("pk", "name", "color"))))
     return hashlib.sha1("|".join(parts).encode()).hexdigest()[:20]

@@ -6,6 +6,7 @@
 <h1>{{ deal.event.name }}: {{ deal.level.name|default:"Sponsor" }}</h1>
 <p class="meta">{{ deal.event.organization.name }} · {{ deal.event.start_date|date:"F j" }}–{{ deal.event.end_date|date:"F j, Y" }} · <span class="tag">{{ status }}</span></p>
 {% if deal.scope != "event" %}<p>Sponsoring: <strong>{% if deal.track %}{{ deal.track.name }} track{% elif deal.session %}{{ deal.session.title }}{% endif %}</strong></p>{% endif %}
+{% include "portal/_listing.html" %}
 {% if deal.level.benefits %}<h2>What's included</h2><div class="description">{{ deal.level.benefits|linebreaks }}</div>{% endif %}
 
 <h2>What we need from you</h2>

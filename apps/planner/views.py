@@ -180,6 +180,42 @@ def session_speaker_confirm(request, pk, row_pk):
 
 
 @login_required
+def session_speaker_details(request, pk, row_pk):
+    """Staff edit what this event's schedule shows about a speaker (their
+    EventSpeaker copy), or refresh it from the speaker's current profile."""
+    from apps.portal.forms import EventProfileForm
+    from apps.program.speaker_actions import PROFILE_FIELDS
+    from apps.speakers.models import EventSpeaker
+
+    session = _session_for(request, pk, Role.STAFF)
+    row = get_object_or_404(SessionSpeaker.objects.select_related("speaker"), pk=row_pk, session=session)
+    es, _ = EventSpeaker.objects.get_or_create(event=session.event, speaker=row.speaker)
+    form = EventProfileForm(
+        request.POST if request.POST.get("action") == "save" else None,
+        initial={f: getattr(es, f) for f in PROFILE_FIELDS},
+    )
+    message = ""
+    if request.method == "POST":
+        if request.POST.get("action") == "from_profile":
+            es.copy_from_profile(overwrite=True)
+            es.save()
+            message = "Copied from the speaker's current profile."
+        elif form.is_valid():
+            for f in PROFILE_FIELDS:
+                setattr(es, f, form.cleaned_data[f])
+            es.save()
+            message = "Saved for this event."
+        if message:
+            form = EventProfileForm(initial={f: getattr(es, f) for f in PROFILE_FIELDS})
+    response = render(
+        request,
+        "planner/partials/speaker_event_details.html",
+        {"session": session, "row": row, "es": es, "form": form, "message": message},
+    )
+    return _refresh(response) if message else response
+
+
+@login_required
 @require_POST
 def session_speaker_remove(request, pk, row_pk):
     session = _session_for(request, pk, Role.STAFF)

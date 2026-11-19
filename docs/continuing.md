@@ -146,6 +146,16 @@ clean.
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
 
+## Per-event copies of shared records (2026-11-19)
+
+Schedules read what they show about a speaker from their `EventSpeaker` for that event
+(affiliation, job title, bio, headshot; names and pronouns stay live so name changes are never
+frozen into old schedules) and about a company from the deal's `CompanyListing` fields (name,
+description, website, logo). Both are copied from the shared record when created (every
+`SessionSpeaker` ensures an engagement); speakers update theirs in the portal until the
+speaker-edit deadline ("use my current profile"; logged as a speaker update), company managers
+until the company deadline; staff any time (grid session panel → "event details", admin).
+
 ## Audit (2026-11-19) — status
 
 Fixed: cross-org speaker profile edits/takeover (#1), bundle N+1 (#3, 581 → 16 queries),

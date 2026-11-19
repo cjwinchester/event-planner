@@ -41,7 +41,7 @@
             <form method="post" action="{% url 'planner:speaker-updates-review' event.organization.slug event.slug %}" class="ml-auto">{% csrf_token %}<button class="text-xs text-blue-700" name="id" value="{{ u.pk }}">mark reviewed</button></form>
           {% endif %}
         </div>
-        {% if u.kind == "edited" %}
+        {% if u.kind == "edited" or u.kind == "event_profile" %}
           <dl class="mt-2 grid gap-1">
             {% for field, pair in u.changes.items %}
               <div><dt class="text-xs font-semibold uppercase text-gray-500">{{ field }}</dt>

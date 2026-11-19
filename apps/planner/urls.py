@@ -18,6 +18,11 @@ urlpatterns = [
         views.session_speaker_confirm,
         name="session-speaker-confirm",
     ),
+    path(
+        "sessions/<int:pk>/speakers/<int:row_pk>/details/",
+        views.session_speaker_details,
+        name="session-speaker-details",
+    ),
     path("<slug:org_slug>/<slug:event_slug>/grid/", views.grid, name="grid"),
     path("<slug:org_slug>/<slug:event_slug>/pitches/", pitch_views.pitches, name="pitches"),
     path("<slug:org_slug>/<slug:event_slug>/pitches/bulk/", pitch_views.pitch_bulk, name="pitch-bulk"),

@@ -20,7 +20,7 @@ from apps.commerce import portal as company_portal
 from apps.commerce.claiming import claim_contacts
 from apps.commerce.models import CompanyContact
 
-from .forms import CompanyForm, ContactForm, DeliverableUploadForm, ExhibitorForm
+from .forms import CompanyForm, ContactForm, DeliverableUploadForm, ExhibitorForm, ListingForm
 from .views import _ctx
 
 
@@ -58,11 +58,35 @@ def _deals(company):
     }
 
 
+def _listing(request, deal, editable):
+    """POST handler for "how this event lists you" (shared by sponsorship and booth pages).
+    Returns a redirect when it handled the request, else None."""
+    action = request.POST.get("action")
+    if action not in ("listing", "listing_from_company"):
+        return None
+    if not editable:
+        raise PermissionDenied
+    if action == "listing_from_company":
+        deal.copy_from_company(overwrite=True)
+        deal.save()
+        messages.success(request, "This event now lists you as your current company profile.")
+    else:
+        form = ListingForm(request.POST, request.FILES, instance=deal)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Saved how {deal.event.name} lists you.")
+        else:
+            messages.error(request, "Check the listing: " + "; ".join(e for errs in form.errors.values() for e in errs))
+    return redirect(request.path)
+
+
 @login_required
 def sponsorship(request, slug, pk):
     me = my_contact(request, slug)
     deal = get_object_or_404(company_portal.sponsorships(me.company), pk=pk)
     editable = me.can_manage and company_portal.can_edit(deal.event)
+    if request.method == "POST" and (handled := _listing(request, deal, editable)):
+        return handled
     if request.method == "POST":
         if not editable:
             raise PermissionDenied
@@ -92,6 +116,7 @@ def sponsorship(request, slug, pk):
             editable=editable,
             deadline=company_portal.deadline(deal.event),
             upload_form=DeliverableUploadForm(),
+            listing_form=ListingForm(instance=deal),
             today=timezone.localdate(),
         ),
     )
@@ -104,6 +129,8 @@ def booth(request, slug, pk):
     me = my_contact(request, slug)
     deal = get_object_or_404(company_portal.bookings(me.company), pk=pk)
     editable = me.can_manage and company_portal.can_edit(deal.event)
+    if request.method == "POST" and (handled := _listing(request, deal, editable)):
+        return handled
     questions = list(
         FormQuestion.objects.filter(event=deal.event, form=FormQuestion.Form.EXHIBITOR).order_by("sort_order")
     )
@@ -139,6 +166,7 @@ def booth(request, slug, pk):
             deadline=company_portal.deadline(deal.event),
             form=form,
             answers=answers,
+            listing_form=ListingForm(instance=deal),
         ),
         status=422 if request.method == "POST" else 200,
     )
