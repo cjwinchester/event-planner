@@ -16,7 +16,7 @@ class ProfileForm(forms.ModelForm):
             "email", "phone", "city", "region", "country",
         ]  # fmt: skip
         labels = {
-            "affiliation": "Organization / affiliation",
+            "affiliation": "Affiliation (employer or newsroom)",
             "email": "Contact email",
             "region": "State / region",
             "country": "Country (2-letter code)",

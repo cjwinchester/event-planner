@@ -2,6 +2,15 @@
 
 Read README.md, then docs/architecture.md. The roadmap and known gaps are in docs/continuing.md.
 
+## Terms (use them precisely: they decide permissions)
+- **Organization**: an event-planning organization using this app (the tenant: IRE, sample-org). Its people
+  are **staff** with `Membership` roles (admin/staff/viewer); it owns events and its side of every deal.
+  In speaker/company-facing text, "event organizer" is fine; never use "organization" for a company or an employer.
+- **Company**: a sponsor, exhibitor or vendor (`commerce.Company`). Its people are `CompanyContact`s:
+  **managers** (company-wide or scoped to specific Organizations) and **members**.
+- **Affiliation**: a speaker's employer/newsroom (a text field), not an Organization or a Company.
+- **Deal**: a `Sponsorship` or `ExhibitorBooking`: private between one Organization and one Company.
+
 ## Commands
 - Local PostGIS: `bash bin/devdb.sh` (cluster on 127.0.0.1:5433, data in gitignored `.pgdata/`;
   run it again after a reboot).

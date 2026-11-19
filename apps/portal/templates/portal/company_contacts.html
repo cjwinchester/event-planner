@@ -30,7 +30,7 @@
   </tbody>
 </table>
 <h2>Add a colleague</h2>
-{% if not me.company_wide %}<p class="hint">They'll see the same organizations you do.</p>{% endif %}
+{% if not me.company_wide %}<p class="hint">They'll see your company's deals with the same event organizers you do.</p>{% endif %}
 <form method="post" class="portal-form" novalidate>
   {% csrf_token %}
   <fieldset>
