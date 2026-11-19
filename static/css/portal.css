@@ -1,0 +1,44 @@
+/* Speaker portal: plain CSS on top of app.css; readable, high contrast, keyboard friendly. */
+body.portal { background: #f9fafb; color: #111827; font-size: 16px; }
+.skip-link { position: absolute; left: -999px; }
+.skip-link:focus { left: 1rem; top: .5rem; background: #fff; padding: .4rem .7rem; z-index: 10; }
+.portal-header { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; padding: .7rem 1.25rem; background: #fff; border-bottom: 1px solid #e5e7eb; }
+.portal-brand { font-weight: 700; color: #1d4ed8; }
+.portal-header nav { display: flex; gap: .25rem; }
+.portal-header nav a { padding: .3rem .6rem; border-radius: .3rem; color: #374151; }
+.portal-header nav a[aria-current="page"] { background: #dbeafe; color: #1e3a8a; font-weight: 600; }
+.portal-user { margin-left: auto; display: flex; align-items: center; gap: .75rem; font-size: .9rem; color: #4b5563; }
+.portal-user a, .portal-user button { color: #1d4ed8; }
+.portal-main { max-width: 52rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+.portal-main h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .75rem; }
+.portal-main h2 { font-size: 1.2rem; font-weight: 650; margin: 1.75rem 0 .5rem; }
+.portal-main p { margin: .4rem 0; }
+.portal-main a:not(.btn):not(.btn-secondary) { color: #1d4ed8; text-decoration: underline; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.notice { background: #fffbeb; border-left: 4px solid #b45309; padding: .5rem .75rem; }
+.hint { color: #4b5563; font-size: .88rem; }
+.error { color: #b91c1c; font-size: .88rem; }
+.speaker-card { display: flex; gap: 1rem; background: #fff; border: 1px solid #e5e7eb; border-radius: .5rem; padding: 1rem; }
+.speaker-card img, .headshot-empty { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: none; }
+.headshot-empty { display: grid; place-items: center; background: #e5e7eb; color: #4b5563; font-weight: 700; font-size: 1.5rem; }
+.speaker-card .name { font-weight: 700; font-size: 1.1rem; }
+.speaker-card .pronouns, .speaker-card .role { color: #4b5563; font-weight: 400; }
+.speaker-card .links { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .4rem; }
+.portal-form fieldset { border: 1px solid #e5e7eb; background: #fff; border-radius: .5rem; padding: 1rem; margin-bottom: 1.25rem; }
+.portal-form fieldset.links { border: 0; padding: 0; margin: .5rem 0 0; background: none; }
+.portal-form legend { font-weight: 650; padding: 0 .25rem; }
+.pfield { margin-bottom: .9rem; }
+.pfield label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: .2rem; }
+.pfield.has-error .input { border-color: #b91c1c; }
+.two { display: grid; gap: 0 1rem; grid-template-columns: 1fr 1fr; }
+.three { display: grid; gap: 0 1rem; grid-template-columns: 2fr 1fr 1fr; }
+@media (max-width: 640px) { .two, .three { grid-template-columns: 1fr; } }
+.link-row { display: grid; grid-template-columns: 9rem 1fr 10rem auto; gap: .5rem; align-items: center; margin-bottom: .5rem; }
+@media (max-width: 640px) { .link-row { grid-template-columns: 1fr; } }
+.link-row .del { font-size: .85rem; white-space: nowrap; min-width: 5rem; }
+.portal-table { width: 100%; background: #fff; border: 1px solid #e5e7eb; border-collapse: collapse; font-size: .95rem; }
+.portal-table th, .portal-table td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.portal-table th { background: #f3f4f6; font-weight: 600; }
+.link-danger { color: #b91c1c; text-decoration: underline; }
+.inline-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-width: 32rem; }
+.inline-form select { flex: 1; }

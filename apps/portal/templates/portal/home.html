@@ -1,0 +1,22 @@
+{% extends "portal/base.html" %}
+{% block title %}Overview{% endblock %}
+{% block main %}
+<h1>Hi, {{ profile.first_name|default:"there" }}</h1>
+{% if missing %}
+  <p class="notice">Your profile is missing {{ missing|join:", " }}. <a href="{% url 'portal:profile' %}">Complete your profile</a> so organizers can use it in schedules.</p>
+{% endif %}
+<section aria-labelledby="public-h">
+  <h2 id="public-h">How you appear in schedules</h2>
+  {% include "portal/_card.html" %}
+  <p><a href="{% url 'portal:profile' %}">Edit profile</a></p>
+</section>
+<section aria-labelledby="share-h">
+  <h2 id="share-h">Who can see your contact details</h2>
+  {% if active_grants %}
+    <p>{% for g in active_grants %}{{ g.organization.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+  {% else %}
+    <p>No organization can see your email, phone or location.</p>
+  {% endif %}
+  <p><a href="{% url 'portal:sharing' %}">Manage sharing</a></p>
+</section>
+{% endblock %}

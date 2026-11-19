@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.api",
     "apps.planner",
     "apps.attendees",
+    "apps.portal",
 ]
 
 MIDDLEWARE = [
@@ -183,9 +184,15 @@ TASKS = {
 
 # --- Auth: django-allauth (email login + Google Workspace SSO) ------------
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# Passwords optional: speakers can sign up with just an email and log in with an
+# emailed one-time code (or Google); staff keep password login. (A signup form
+# without any password field would make allauth drop the password box from login.)
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_SUPPORTS_RESEND = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = ACCOUNT_EMAIL_VERIFICATION == "mandatory"  # allauth requires it
 ACCOUNT_UNIQUE_EMAIL = True
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -205,7 +212,7 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 LOGIN_URL = "account_login"
-LOGIN_REDIRECT_URL = "/plan/"
+LOGIN_REDIRECT_URL = "/"  # apps.portal.views.home sends staff to /plan/, speakers to /speak/
 
 # --- REST API -------------------------------------------------------------
 REST_FRAMEWORK = {

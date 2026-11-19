@@ -40,6 +40,16 @@ local time); logistics are re-placed via `place_logistics_item`. Registrations, 
 RFPs, sponsorships, speakers, pitches and passes are never copied. Picking a source suggests
 the next edition's name/slug ("NICAR 2026" → "NICAR 2027").
 
+**Speaker portal, part A** (`/speak/`, `apps.portal`): login by emailed one-time code (allauth
+`ACCOUNT_LOGIN_BY_CODE_ENABLED`; signup password optional, staff passwords unchanged) or
+Google; `/` routes staff to `/plan/` and everyone else to `/speak/`. On every login the user
+is linked to unclaimed speaker profiles by **verified** email and duplicates are merged into
+the most recent (`speakers.merging`: links moved, blanks filled, unique collisions absorbed,
+speaker revocations win). Pages: overview with the public card, profile edit (public vs
+private fields, headshot, links), sharing (grant/turn off per org). Imported profiles have no
+email, so they're only claimable once staff add one (name-based claiming: open question).
+Parts B (my sessions) and C (pitches/open calls) are next.
+
 **Virtual events and attendee links:**
 - **Rooms panel** (grid toolbar → Rooms): add/rename/reorder/hide/remove the event's
   columns. An org's virtual rooms (one per Zoom user, e.g. Zoom Room 0–5 + Zoom Webinar)

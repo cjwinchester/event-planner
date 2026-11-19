@@ -11,8 +11,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+from apps.portal import views as portal_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -23,7 +24,8 @@ urlpatterns = [
     path("feeds/", include("apps.publishing.urls")),
     path("plan/", include("apps.planner.urls")),
     path("my/", include("apps.attendees.urls")),
-    path("", RedirectView.as_view(url="/plan/", permanent=False)),
+    path("speak/", include("apps.portal.urls")),
+    path("", portal_views.home, name="home"),
 ]
 
 if settings.DEBUG:

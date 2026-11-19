@@ -1,0 +1,33 @@
+{% extends "portal/base.html" %}
+{% block title %}Sharing{% endblock %}
+{% block main %}
+<h1>Who can see your contact details</h1>
+<p>Your name, bio, headshot and links are public. Your <strong>email, phone and location</strong> are shared only with the organizations listed as allowed. Pitching to an organization allows it automatically; you can turn that off at any time. If you turn an organization off, it stays off until you pitch to it again or allow it here.</p>
+<table class="portal-table">
+  <thead><tr><th scope="col">Organization</th><th scope="col">Status</th><th scope="col">Why</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+  <tbody>
+  {% for g in grants %}
+    <tr>
+      <td>{{ g.organization.name }}</td>
+      <td>{% if g.is_active %}Allowed since {{ g.granted_at|date:"M j, Y" }}{% else %}Not allowed{% if g.revoked_by_speaker %} (you turned it off {{ g.revoked_at|date:"M j, Y" }}){% endif %}{% endif %}</td>
+      <td>{{ g.get_source_display }}</td>
+      <td>
+        {% if g.is_active %}
+          <form method="post" action="{% url 'portal:sharing-revoke' g.organization_id %}">{% csrf_token %}<button class="link-danger">Turn off</button></form>
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No organizations yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h2>Allow an organization</h2>
+<form method="post" class="inline-form">
+  {% csrf_token %}
+  <label for="{{ form.organization.id_for_label }}" class="sr-only">Organization</label>
+  {{ form.organization }}
+  <button class="btn-secondary">Allow</button>
+  {% for err in form.organization.errors %}<p class="error">{{ err }}</p>{% endfor %}
+</form>
+{% endblock %}

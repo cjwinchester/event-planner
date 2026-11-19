@@ -1,0 +1,10 @@
+{# How the speaker appears in published schedules: public fields only. #}
+<div class="speaker-card">
+  {% if public.headshot %}<img src="{{ public.headshot }}" alt="" width="96" height="96">{% else %}<div class="headshot-empty" aria-hidden="true">{{ public.first_name|first }}{{ public.last_name|first }}</div>{% endif %}
+  <div>
+    <p class="name">{{ public.first_name }} {{ public.last_name }}{% if public.pronouns %} <span class="pronouns">({{ public.pronouns }})</span>{% endif %}</p>
+    {% if public.job_title or public.affiliation %}<p class="role">{{ public.job_title }}{% if public.job_title and public.affiliation %}, {% endif %}{{ public.affiliation }}</p>{% endif %}
+    {% if public.bio %}<p class="bio">{{ public.bio|linebreaksbr }}</p>{% else %}<p class="hint">No bio yet.</p>{% endif %}
+    {% if public.links %}<ul class="links">{% for l in public.links %}<li><a href="{{ l.url }}" rel="noopener">{{ l.label }}</a></li>{% endfor %}</ul>{% endif %}
+  </div>
+</div>

@@ -11,6 +11,7 @@ ALLOWED_HOSTS = ["testserver", "localhost"]
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
 ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = False
 FIELD_ENCRYPTION_KEYS = ["dGVzdC1vbmx5LWZpZWxkLWVuY3J5cHQta2V5LTAwMDA="]
 
 # Run tasks inline so tests can assert on their effects.

@@ -1,0 +1,49 @@
+{% extends "portal/base.html" %}
+{% block title %}{% if creating %}Create your speaker profile{% else %}Profile{% endif %}{% endblock %}
+{% block main %}
+<h1>{% if creating %}Create your speaker profile{% else %}Your profile{% endif %}</h1>
+{% if creating %}<p>We didn't find a speaker profile for {{ user.email }}. Fill this in once and use it for every event and organization.</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="portal-form" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <fieldset>
+    <legend>Public: shown in schedules</legend>
+    <div class="two">
+      {% include "portal/_field.html" with field=form.first_name %}
+      {% include "portal/_field.html" with field=form.last_name %}
+    </div>
+    <div class="two">
+      {% include "portal/_field.html" with field=form.pronouns %}
+      {% include "portal/_field.html" with field=form.job_title %}
+    </div>
+    {% include "portal/_field.html" with field=form.affiliation %}
+    {% include "portal/_field.html" with field=form.bio %}
+    {% include "portal/_field.html" with field=form.headshot %}
+    <fieldset class="links">
+      <legend>Links</legend>
+      {{ links.management_form }}
+      {% for lf in links %}
+        <div class="link-row">
+          {{ lf.id }}
+          <label><span class="sr-only">Kind</span>{{ lf.kind }}</label>
+          <label><span class="sr-only">URL</span>{{ lf.url }}</label>
+          <label><span class="sr-only">Label</span>{{ lf.label }}</label>
+          {% if lf.instance.pk %}<label class="del">{{ lf.DELETE }} Remove</label>{% else %}<span class="del" aria-hidden="true"></span>{% endif %}
+          {% for f in lf %}{% for err in f.errors %}<p class="error">{{ err }}</p>{% endfor %}{% endfor %}
+        </div>
+      {% endfor %}
+    </fieldset>
+  </fieldset>
+  <fieldset>
+    <legend>Private: only for organizations you allow</legend>
+    {% include "portal/_field.html" with field=form.email %}
+    {% include "portal/_field.html" with field=form.phone %}
+    <div class="three">
+      {% include "portal/_field.html" with field=form.city %}
+      {% include "portal/_field.html" with field=form.region %}
+      {% include "portal/_field.html" with field=form.country %}
+    </div>
+  </fieldset>
+  <button class="btn">{% if creating %}Create profile{% else %}Save profile{% endif %}</button>
+</form>
+{% endblock %}

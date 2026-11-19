@@ -16,8 +16,8 @@
     <a href="{% url 'planner:event-list' %}" class="font-semibold text-blue-700">Event Planner</a>
     {% block breadcrumbs %}{% endblock %}
     <nav class="ml-auto flex items-center gap-3 text-sm text-gray-600">
-      <a href="/admin/" class="hover:text-blue-700">Admin</a>
-      <a href="/api/docs/" class="hover:text-blue-700">API</a>
+      {% if user.is_staff %}<a href="/admin/" class="hover:text-blue-700">Admin</a>{% endif %}
+      {% if user.is_authenticated %}<a href="/api/docs/" class="hover:text-blue-700">API</a>{% endif %}
       {% if user.is_authenticated %}
         <span>{{ user.email }}</span>
         <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button class="hover:text-blue-700">Log out</button></form>
