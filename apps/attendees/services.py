@@ -46,21 +46,28 @@ def issue_passes(event) -> IssueResult:
                 obj.save(update_fields=["name", "email", "updated_at"])
                 result.updated += 1
             result.created += created
-        covered = {e.lower() for e in AttendeePass.objects.filter(event=event).values_list("email", flat=True) if e}
+        # Bulk: a few queries however many registrants (was two per registrant).
+        existing = AttendeePass.objects.filter(event=event)
+        has_pass = set(existing.exclude(registration=None).values_list("registration_id", flat=True))
+        unlinked = {  # speaker passes not yet tied to a registration, by email
+            e.lower(): pk for pk, e in existing.filter(registration=None).exclude(email="").values_list("pk", "email")
+        }
+        covered = {e.lower() for e in existing.exclude(email="").values_list("email", flat=True)}
         regs = Registration.objects.filter(event=event, canceled_at__isnull=True).exclude(email="")
-        for reg in regs.order_by("last_name", "first_name"):
-            if AttendeePass.objects.filter(event=event, registration=reg).exists():
-                continue
-            if reg.email.lower() in covered:
+        new = []
+        for reg in regs.exclude(pk__in=has_pass).order_by("last_name", "first_name"):
+            email = reg.email.lower()
+            if email in unlinked:
                 # Same person as a speaker pass: link the registration so cancelation still applies.
-                AttendeePass.objects.filter(event=event, email__iexact=reg.email, registration__isnull=True).update(
-                    registration=reg
-                )
+                AttendeePass.objects.filter(pk=unlinked.pop(email)).update(registration=reg)
+                continue
+            if email in covered:
                 continue
             name = " ".join(p for p in (reg.first_name, reg.last_name) if p) or reg.email
-            AttendeePass.objects.create(event=event, registration=reg, name=name, email=reg.email)
-            covered.add(reg.email.lower())
-            result.created += 1
+            new.append(AttendeePass(event=event, registration=reg, name=name, email=reg.email))
+            covered.add(email)
+        AttendeePass.objects.bulk_create(new, batch_size=500)
+        result.created += len(new)
     return result
 
 

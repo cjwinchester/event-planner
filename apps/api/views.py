@@ -4,6 +4,7 @@ OpenAPI UI at /api/docs/."""
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -267,6 +268,17 @@ class SpeakerViewSet(viewsets.ModelViewSet):
     permission_classes = [SharedDirectoryPermission]
     search_fields = ["first_name", "last_name", "affiliation"]
 
+    def get_queryset(self):
+        # One query for "may this user see each speaker's private fields?" instead of one per row.
+        user = self.request.user
+        qs = super().get_queryset()
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs
+        grants = SpeakerShareGrant.objects.filter(
+            speaker=OuterRef("pk"), organization_id__in=organization_ids_for(user), revoked_at__isnull=True
+        )
+        return qs.annotate(_shared_with_viewer=Exists(grants))
+
     def perform_update(self, serializer):
         # speakers.permissions: claimed profiles belong to the speaker; an unclaimed
         # profile's private fields (email decides who can claim it) only to its creator.
@@ -396,7 +408,9 @@ class MyPitchViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 class PitchTargetViewSet(OrgScopedViewSet):
     """Staff review of pitches (the review dashboard's data)."""
 
-    queryset = PitchTarget.objects.select_related("pitch__submitted_by", "event").prefetch_related("votes__user")
+    queryset = PitchTarget.objects.select_related("pitch__submitted_by", "event").prefetch_related(
+        "votes__user", "suggested_tracks"
+    )
     serializer_class = s.PitchTargetSerializer
     filterset_fields = ["event", "status"]
     search_fields = ["pitch__title", "pitch__description"]

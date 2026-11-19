@@ -244,6 +244,8 @@ class SpeakerProfileSerializer(serializers.ModelSerializer):
             return False
         if user.is_superuser or instance.user_id == user.pk:
             return True
+        if hasattr(instance, "_shared_with_viewer"):  # annotated by SpeakerViewSet
+            return instance._shared_with_viewer
         return instance.share_grants.filter(
             organization_id__in=organization_ids_for(user), revoked_at__isnull=True
         ).exists()
