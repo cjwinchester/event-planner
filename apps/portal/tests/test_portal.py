@@ -133,3 +133,20 @@ def test_signup_without_password_and_staff_password_login(client, world, django_
     assert resp.status_code == 302
     user = django_user_model.objects.get(email="nopass@example.com")
     assert not user.has_usable_password()
+
+
+@pytest.mark.django_db
+def test_merge_keeps_pitch_co_speaker_role_and_order(world):
+    """Regression: PitchSpeaker's FK is hidden (related_name="+"), so merges skipped it
+    and rebuilt the row through the M2M with default role/order."""
+    from apps.pitches.models import Pitch, PitchSpeaker
+
+    old = SpeakerProfile.objects.create(first_name="Old")
+    new = SpeakerProfile.objects.create(first_name="New")
+    pitch = Pitch.objects.create(submitted_by=world.bob, title="T", description="D")
+    PitchSpeaker.objects.create(pitch=pitch, speaker=world.bob)
+    PitchSpeaker.objects.create(pitch=pitch, speaker=old, role="moderator", sort_order=5)
+    merge_profiles(new, [old])
+    row = PitchSpeaker.objects.get(pitch=pitch, speaker=new)
+    assert (row.role, row.sort_order) == ("moderator", 5)
+    assert not PitchSpeaker.objects.filter(speaker=old).exists()

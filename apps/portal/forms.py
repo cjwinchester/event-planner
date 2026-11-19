@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import FileExtensionValidator
 from django.forms import inlineformset_factory
 
 from apps.organizations.models import Organization
@@ -206,7 +207,7 @@ class CompanyForm(forms.ModelForm):
         labels = {"description": "Public description"}
         help_texts = {
             "description": "Shown on published sponsor and exhibitor lists for every event you take part in.",
-            "logo": "PNG or SVG with a transparent background works best.",
+            "logo": "PNG or JPG; a PNG with a transparent background works best. (SVG isn't supported here.)",
         }
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
@@ -247,8 +248,24 @@ class ContactForm(forms.ModelForm):
         return email
 
 
+DELIVERABLE_EXTENSIONS = [
+    "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "eps", "ai", "psd",
+    "doc", "docx", "txt", "rtf", "md", "ppt", "pptx", "xls", "xlsx", "csv", "zip",
+]  # fmt: skip
+MAX_DELIVERABLE_MB = 20
+
+
 class DeliverableUploadForm(forms.Form):
-    file = forms.FileField()
+    """Sponsor materials: documents, images (incl. vector logos) and zips; no
+    HTML or executables, which would be served back from our storage."""
+
+    file = forms.FileField(validators=[FileExtensionValidator(DELIVERABLE_EXTENSIONS)])
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        if f.size > MAX_DELIVERABLE_MB * 1024 * 1024:
+            raise forms.ValidationError(f"Please upload files under {MAX_DELIVERABLE_MB} MB.")
+        return f
 
 
 class ExhibitorForm(EventInfoForm):

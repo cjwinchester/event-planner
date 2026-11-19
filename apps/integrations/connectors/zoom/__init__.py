@@ -15,6 +15,7 @@ Options (IntegrationConfig.options, non-secret):
 from __future__ import annotations
 
 from datetime import UTC
+from urllib.parse import quote
 
 from ...base import (
     AttendanceRecord,
@@ -37,6 +38,11 @@ def _client(ctx) -> ZoomClient:
     return ZoomClient(
         account_id=ctx.get("account_id"), client_id=ctx.get("client_id"), client_secret=ctx.get("client_secret")
     )
+
+
+def _user(host: str) -> str:
+    """A Zoom user id/email as one path segment (a stray "/" or "?" can't reach other endpoints)."""
+    return quote(host.strip(), safe="@")
 
 
 def _plural(kind: str) -> str:
@@ -67,7 +73,7 @@ class ZoomConnector(BaseConnector):
         """Is `host` a licensed user in this account (with webinars, for a webinar room)?"""
         client = _client(ctx)
         try:
-            user = client.request("GET", f"/users/{host}")
+            user = client.request("GET", f"/users/{_user(host)}")
         except ConnectorError as exc:
             return False, f"Not found in this Zoom account ({exc})."
         if user.get("status") not in (None, "active"):
@@ -76,7 +82,7 @@ class ZoomConnector(BaseConnector):
             return False, "User is Basic (unlicensed): meetings are capped at 40 minutes."
         if kind == "webinar":
             try:
-                feature = client.request("GET", f"/users/{host}/settings").get("feature", {})
+                feature = client.request("GET", f"/users/{_user(host)}/settings").get("feature", {})
             except ConnectorError as exc:
                 return False, f"Couldn't read the user's settings ({exc})."
             if not feature.get("webinar"):
@@ -97,7 +103,7 @@ class ZoomConnector(BaseConnector):
 
     def create_meeting(self, ctx, *, host, kind, title, starts_at, minutes, recorded):
         body = self._body(ctx, kind=kind, title=title, starts_at=starts_at, minutes=minutes, recorded=recorded)
-        data = _client(ctx).request("POST", f"/users/{host}/{_plural(kind)}", json=body)
+        data = _client(ctx).request("POST", f"/users/{_user(host)}/{_plural(kind)}", json=body)
         # start_url (the host's key) is deliberately not kept: it expires and grants host control.
         return MeetingInfo(external_id=str(data["id"]), join_url=data["join_url"], raw={"uuid": data.get("uuid")})
 

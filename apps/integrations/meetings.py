@@ -19,9 +19,11 @@ joins, and unique participants. Participant names/emails are not stored.
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db import connection
 from django.utils import timezone
 
 from apps.program.models import Session, VirtualMeeting, meeting_spec
@@ -77,7 +79,35 @@ def meeting_plan(event) -> dict:
     return plan
 
 
+LOCK_NAMESPACE = 7310  # pg advisory lock class for "meeting sync" (arbitrary, stable)
+
+
+@contextmanager
+def _event_lock(event):
+    """Postgres advisory lock per event, held for the whole sync without a
+    long transaction. Yields False if another sync holds it (a double click,
+    or a queued run overlapping a manual one), which would otherwise create
+    duplicate meetings in Zoom."""
+    with connection.cursor() as cur:
+        cur.execute("SELECT pg_try_advisory_lock(%s, %s)", [LOCK_NAMESPACE, event.pk])
+        got = cur.fetchone()[0]
+    try:
+        yield got
+    finally:
+        if got:
+            with connection.cursor() as cur:
+                cur.execute("SELECT pg_advisory_unlock(%s, %s)", [LOCK_NAMESPACE, event.pk])
+
+
 def sync_meetings(event, *, triggered_by=None) -> SyncRun:
+    with _event_lock(event) as locked:
+        if not locked:
+            run = _run(event, "sync_meetings", triggered_by)
+            return _finish(run, {}, ["Another meeting sync for this event is already running; try again shortly."])
+        return _sync_meetings(event, triggered_by)
+
+
+def _sync_meetings(event, triggered_by) -> SyncRun:
     run = _run(event, "sync_meetings", triggered_by)
     stats = {"created": 0, "updated": 0, "recreated": 0, "deleted": 0, "failed": 0}
     errors: list[str] = []

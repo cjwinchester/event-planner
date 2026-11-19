@@ -146,6 +146,24 @@ clean.
    Event Bundle directly and retire the adapter.
 10. **GraphQL** (strawberry-django), read-only first, if mobile clients need it.
 
+## Audit (2026-11-19) — status
+
+Fixed: cross-org speaker profile edits/takeover (#1), bundle N+1 (#3, 581 → 16 queries),
+cached public bundle and rendered feeds (#4), shared cache + persistent DB connections (#5),
+per-row API queries and bulk link issuing (#6), merges keeping pitch co-speaker role/order
+(#7), deliverable upload type/size limits (#8), copied events start unpublished (#9),
+advisory lock on Zoom meeting sync (#10), due-date wording (#11), Zoom path encoding (#12).
+
+Open:
+- **#2 cross-org company deal visibility**: any org's staff can add a contact to any company
+  (admin inline), and a contact's portal shows the company's deals with *every* org. Owner's
+  model (2026-11-19): shared profile fields visible to orgs a speaker/company works with;
+  per-event data (invoices, exhibitor setup) private between that org and the company.
+  Proposed: contacts carry who added them; org-added contacts see only that org's events;
+  company-managed contacts see all of their company's deals.
+- Shared directories (venues, companies, public speaker fields) have no edit history.
+- Deliverable files live in public storage (no signed URLs).
+
 ## Requested, not started
 
 - **Zoom go-live checklist** (needs the account Owner): create a Server-to-Server OAuth app

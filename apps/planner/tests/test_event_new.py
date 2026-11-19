@@ -105,3 +105,17 @@ def test_staff_of_two_orgs_pick_organization(client, world):
     Membership.objects.create(user=world.staff_user, organization=world.other_org, role=Membership.Role.STAFF)
     client.force_login(world.staff_user)
     assert '<select name="organization"' in client.get(URL).content.decode()
+
+
+@pytest.mark.django_db
+def test_copied_details_never_publish_the_new_event(world):
+    from apps.events.copying import copy_event_parts
+
+    world.event.publish_schedule = True
+    world.event.description = "Annual conference"
+    world.event.save()
+    target = Event.objects.create(organization=world.org, name="Next", slug="next", start_date=world.event.start_date,
+                                  end_date=world.event.end_date, timezone="UTC")  # fmt: skip
+    copy_event_parts(world.event, target, ["details"])
+    target.refresh_from_db()
+    assert target.description == "Annual conference" and target.publish_schedule is False

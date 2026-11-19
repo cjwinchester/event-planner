@@ -177,3 +177,25 @@ class TestCompanyDeals:
         client.force_login(account(django_user_model, "dana@acme.example"))
         assert client.get(reverse("portal:sponsorship", args=["acme-data", theirs.pk])).status_code == 404
         assert client.get(reverse("portal:sponsorship", args=["prospect-co", theirs.pk])).status_code == 404
+
+
+@pytest.mark.django_db
+def test_deliverable_upload_rejects_html_and_huge_files(client, deals, django_user_model):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from apps.portal import forms as portal_forms
+
+    _world, sp, *_ = deals
+    client.force_login(account(django_user_model, "dana@acme.example"))
+    item = sp.deliverables.get()
+    url = reverse("portal:sponsorship", args=["acme-data", sp.pk])
+    page = client.post(url, {"deliverable": item.pk, "file": SimpleUploadedFile("x.html", b"<script>")}, follow=True)
+    item.refresh_from_db()
+    assert item.status == "pending" and "not allowed" in page.content.decode()
+    portal_forms.MAX_DELIVERABLE_MB = 0
+    try:
+        client.post(url, {"deliverable": item.pk, "file": SimpleUploadedFile("big.pdf", b"x" * 10)})
+    finally:
+        portal_forms.MAX_DELIVERABLE_MB = 20
+    item.refresh_from_db()
+    assert item.status == "pending"

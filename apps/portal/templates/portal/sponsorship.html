@@ -9,13 +9,13 @@
 {% if deal.level.benefits %}<h2>What's included</h2><div class="description">{{ deal.level.benefits|linebreaks }}</div>{% endif %}
 
 <h2>What we need from you</h2>
-{% if editable %}<p class="hint">Upload by {% timezone deal.event.timezone %}{{ deadline|date:"l, F j, g:i A T" }}{% endtimezone %}, or by each item's due date if earlier.</p>
+{% if editable %}<p class="hint">Please send each item by its due date. Uploads close {% timezone deal.event.timezone %}{{ deadline|date:"l, F j, g:i A T" }}{% endtimezone %}.</p>
 {% elif not me.can_manage %}<p class="hint">Only contacts who can manage {{ company.name }} can upload.</p>
 {% else %}<p class="hint">The upload deadline has passed. Contact {{ deal.event.organization.name }} to send anything else.</p>{% endif %}
 <ul class="deliverables">
   {% for d in deliverables %}
     <li>
-      <div><strong>{{ d.title }}</strong>{% if d.due_date %} <span class="hint">due {{ d.due_date|date:"M j" }}</span>{% endif %}
+      <div><strong>{{ d.title }}</strong>{% if d.due_date %} <span class="hint">due {{ d.due_date|date:"M j" }}</span>{% if d.status == "pending" and d.due_date < today %} <span class="tag tag-warn">Overdue</span>{% endif %}{% endif %}
         <span class="tag {% if d.status == 'done' %}tag-ok{% elif d.status == 'pending' %}tag-warn{% endif %}">{% if d.status == "pending" %}Needed{% elif d.status == "received" %}Received{% else %}Done{% endif %}</span></div>
       {% if d.notes %}<p class="hint">{{ d.notes }}</p>{% endif %}
       {% if d.file %}<p class="hint">Sent: {{ d.file.name|cut:"sponsorships/deliverables/" }}</p>{% endif %}

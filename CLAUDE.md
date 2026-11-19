@@ -31,6 +31,10 @@ Read README.md, then docs/architecture.md. The roadmap and known gaps are in doc
 - **Published speakers are confirmed speakers**: public bundles include only `SessionSpeaker.is_confirmed` rows.
   Speakers confirm in the portal (or staff mark it); speaker portal edits/confirmations/withdrawals go through
   `program.speaker_actions` (deadline check + `SpeakerUpdate` log).
+- **Shared speaker profiles**: edits go through `speakers.permissions` (a claimed profile is the speaker's;
+  an unclaimed one's email only by the creating org, since the email decides who can claim it).
+- **Public reads use the cache**: feeds and pass pages call `publishing.cache.public_bundle` (deep copy; never
+  mutate the cached dict). If the bundle gains data from a new model, add it to `content_version`.
 - **Scheduling writes** go through `program.scheduling.place_*` (it locks the event and
   checks conflicts). Don't save room/time changes directly in new code paths.
 - **Times** are stored in UTC; display and accept them in `event.timezone`.

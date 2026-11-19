@@ -76,7 +76,7 @@ def sponsorship(request, slug, pk):
             else:
                 messages.success(request, f"Uploaded “{item.title}”. Thanks!")
         else:
-            messages.error(request, "Choose a file to upload.")
+            messages.error(request, " ".join(form.errors.get("file", ["Choose a file to upload."])))
         return redirect("portal:sponsorship", slug=slug, pk=deal.pk)
     return render(
         request,
@@ -92,6 +92,7 @@ def sponsorship(request, slug, pk):
             editable=editable,
             deadline=company_portal.deadline(deal.event),
             upload_form=DeliverableUploadForm(),
+            today=timezone.localdate(),
         ),
     )
 

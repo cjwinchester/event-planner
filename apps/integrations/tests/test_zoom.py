@@ -312,3 +312,28 @@ def test_admin_save_and_test_button(client, world, monkeypatch):
     assert "Test passed: Connected as owner@ire.example." in resp.content.decode()
     config.refresh_from_db()
     assert config.credentials == CREDS  # blank credentials field keeps the stored ones
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_sync_is_refused(zoomed):
+    """A second sync while one holds the event's advisory lock does nothing (no duplicate meetings)."""
+    from django.db import connections
+
+    world, fake, *_ = zoomed
+    other = connections.create_connection("default")  # a second session, like another worker
+    try:
+        with other.cursor() as cur:
+            cur.execute("SELECT pg_advisory_lock(%s, %s)", [meetings.LOCK_NAMESPACE, world.event.pk])
+        run = meetings.sync_meetings(world.event)
+        assert run.status == SyncRun.Status.FAILED and "already running" in run.message and fake.log == []
+        with other.cursor() as cur:
+            cur.execute("SELECT pg_advisory_unlock(%s, %s)", [meetings.LOCK_NAMESPACE, world.event.pk])
+        assert meetings.sync_meetings(world.event).stats["created"] == 1
+    finally:
+        other.close()
+
+
+def test_host_is_one_path_segment(zoom_http):
+    fake = zoom_http({("GET", "/users/a%2F..%2Fadmin%3Fx%3D1"): FakeResponse(404, {"message": "nope"})})
+    ok, _ = ZoomConnector().check_host(TestZoomConnector().ctx(), host="a/../admin?x=1", kind="meeting")
+    assert not ok and fake.calls[0][1] == "/users/a%2F..%2Fadmin%3Fx%3D1"

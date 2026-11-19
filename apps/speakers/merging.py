@@ -63,11 +63,16 @@ def _merge_grants(keep: SpeakerProfile, other: SpeakerProfile) -> None:
 
 def _repoint(keep: SpeakerProfile, other: SpeakerProfile) -> None:
     """Move every FK/M2M that points at `other` to `keep`, dropping collisions."""
-    for rel in SpeakerProfile._meta.related_objects:
+    # include_hidden: FKs with related_name="+" (e.g. pitches.PitchSpeaker) are
+    # left out of _meta.related_objects but still point at the profile.
+    rels = [f for f in SpeakerProfile._meta.get_fields(include_hidden=True) if f.auto_created and not f.concrete]
+    for rel in rels:
         model, field = rel.related_model, rel.field
         if model is SpeakerShareGrant:
             continue  # handled by _merge_grants
         if rel.many_to_many:
+            if not field.remote_field.through._meta.auto_created:
+                continue  # explicit through model: its own FK is repointed below, keeping role/order
             for obj in model.objects.filter(**{field.name: other}):
                 getattr(obj, field.name).remove(other)
                 getattr(obj, field.name).add(keep)

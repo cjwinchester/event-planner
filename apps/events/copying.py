@@ -23,7 +23,8 @@ from django.db import transaction
 
 PARTS: list[tuple[str, str, str]] = [
     ("details", "Details & settings",
-     "Description, intro text, visibility, publish settings, pitch instructions, registration connector."),
+     "Description, intro text, visibility, what to include when published, pitch instructions, registration "
+     "connector. The new event starts unpublished."),
     ("rooms", "Venues & rooms", "Venues and grid columns, with each room's setup, capacity and recording settings."),
     ("time_slots", "Time slots", "Same local times on the matching event day (day 1 → day 1)."),
     ("tracks", "Tracks", "Names, colors and descriptions."),
@@ -42,8 +43,10 @@ ROOM_FIELDS = [
     "notes",
 ]  # fmt: skip
 
+# publish_schedule is deliberately not copied: a new event starts unpublished, or
+# its sessions would go public the moment they're ready.
 DETAIL_FIELDS = [
-    "description", "intro_text", "visibility", "publish_schedule", "publish_speakers", "publish_sponsors",
+    "description", "intro_text", "visibility", "publish_speakers", "publish_sponsors",
     "publish_exhibitors", "publish_logistics", "pitch_instructions", "registration_connector",
 ]  # fmt: skip
 
